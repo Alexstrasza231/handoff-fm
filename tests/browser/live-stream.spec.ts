@@ -1,4 +1,4 @@
-import {test,expect,makeEvent,PUSH_TEXT,CODEX_SESSION,DEEPSEEK_SESSION,characterArt,expectNoUnexpectedErrors,selectedSeq} from './fixture';
+import {openHistory,test,expect,makeEvent,PUSH_TEXT,CODEX_SESSION,DEEPSEEK_SESSION,characterArt,expectNoUnexpectedErrors,selectedSeq} from './fixture';
 
 /**
  * The live view must be fed by the real loopback SSE endpoint: a record enqueued after the page
@@ -12,6 +12,7 @@ test('a real SSE update appears without a reload and can be selected as evidence
  ]);
 
  await page.goto(watcher.url);
+ await openHistory(page);
  await expect(page.locator('.timeline-row')).toHaveCount(3);
  await expect(page.locator('.status')).toHaveText('已连接');
  await expect(selectedSeq(page)).toHaveText('#3');
@@ -54,6 +55,7 @@ test('the run list and the recorded sequence come from the service, not from the
   makeEvent({id:'canary-12',actor:'deepseek',kind:'tool.completed',offsetSeconds:1,data:{tool:'bash',callId:'c9',exitCode:0,status:'completed',output:'ok'}})
  ]);
  await page.goto(watcher.url);
+ await openHistory(page);
  const picker=page.getByLabel('选择运行记录');
  await expect(picker.locator('option')).toHaveCount(1);
  await expect(picker.locator('option')).toContainText('第一条任务');

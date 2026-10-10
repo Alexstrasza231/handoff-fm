@@ -4,7 +4,8 @@ import {DEFAULT_SHARE} from '../src/types';
 import {DeskPanel,EvidencePanel,Timeline} from './components';
 import {ApiError,appendEvent,captureToken,createLiveApi,EventStream,offlinePayload,runsFrom,sideText,type Connection,type LiveApi,type Loaded,type RunRow,type Source} from './data';
 import {demoEvents} from './demo';
-import {clockTime,deriveActors} from './helpers';
+import {ACTOR_LABEL,clockTime,deriveActors,eventSummary,KIND_LABEL} from './helpers';
+import {cleanTaskTitle,latestHandoffIndex,recentActivities,taskTitle} from './presentation';
 import {findJump,isFailure,isHandoff,type Mode,useReplay} from './replay';
 import {ShareModal} from './ShareModal';
 import {ArtCredits} from './ArtCredits';
@@ -30,6 +31,8 @@ export default function App(){
  const [selectedId,setSelectedId]=useState<string|null>(null);
  const [replayPick,setReplayPick]=useState<string|null>(null);
  const [shareOpen,setShareOpen]=useState(false);
+ const [moreOpen,setMoreOpen]=useState(false);
+ const [evidenceOpen,setEvidenceOpen]=useState(false);
  const [shareOptions,setShareOptions]=useState<ShareOptions>({...DEFAULT_SHARE});
  const [exporting,setExporting]=useState(false);
  const [exportError,setExportError]=useState<string|null>(null);
@@ -186,6 +189,7 @@ export default function App(){
   const event=events[index];
   if(!event)return;
   setSelectedId(event.id);
+  setEvidenceOpen(true);
   if(mode==='replay'){setReplayPick(event.id);jump(index);}
  },[events,mode,jump]);
  const moveSelection=useCallback((step:number)=>{
@@ -251,7 +255,10 @@ export default function App(){
  const authBad=auth==='invalid'||auth==='missing';
  const showWaiting=!events.length&&!authBad;
  const controlsDisabled=!events.length;
- const taskLine=(events.find(event=>event.kind==='task.started')?.data.prompt as string|undefined)||runs.find(row=>row.id===runId)?.title||'等待记录';
+ const taskLine=taskTitle(visible,runs.find(row=>row.id===runId)?.title);
+ const recent=recentActivities(visible);
+ const latestChange=[...visible].reverse().find(event=>event.kind==='file.changed');
+ const handoffIndex=latestHandoffIndex(events);
  const shownRuns=localMode?loaded?.runs??[]:runs;
  const stageNow=mode==='replay'||localMode?Date.parse(visible.at(-1)?.at??new Date(now).toISOString()):now;
 
@@ -260,49 +267,57 @@ export default function App(){
    <div className="brand">
     <span className="brand-mark" aria-hidden="true">FM</span>
     <div>
-     <h1>HandoffFM 交接台</h1>
-     <p className="brand-sub">HandoffFM · 双代理交接记录与回放</p>
+     <h1>HandoffFM</h1>
+     <p className="brand-sub">白龙派活，蓝鲸交稿。</p>
     </div>
    </div>
    <div className="topbar-mid">
-    <p className="task-line"><span className="tag">当前任务</span>{taskLine}</p>
     <p className="conn-line">
      <span className={`dot conn-${offline?'offline':connection}`} aria-hidden="true"></span>
      <span className="status" role="status" aria-live="polite">{statusText}</span>
-     <span className="muted">{mode==='live'?'实时视图':'回放视图'} · 共 {events.length} 条记录</span>
+     <span className="muted">{mode==='live'?'实时':'回放'}</span>
     </p>
    </div>
    <div className="topbar-actions">
+    <button type="button" className="ghost" aria-expanded={moreOpen} aria-controls="more-panel" onClick={()=>setMoreOpen(value=>!value)}>更多</button>
+   </div>
+  </header>
+  <p className="task-line" title={taskLine}><span className="tag">本集任务</span><span className="task-title">{taskLine}</span></p>
+
+  <div id="more-panel" className="more-panel" hidden={!moreOpen}>
     {!localMode?<button type="button" className="ghost" onClick={enterDemo}>{SAMPLE}</button>:null}
     <label className="run-picker">
      <span>运行</span>
      <select value={runId} onChange={event=>{setMode('live');setReplayPick(null);setRunId(event.target.value);}} aria-label="选择运行记录">
       {shownRuns.length===0?<option value="">等待记录</option>:null}
-      {shownRuns.map(row=><option key={row.id} value={row.id}>{row.title}（{row.count}）</option>)}
+      {shownRuns.map(row=><option key={row.id} value={row.id}>{cleanTaskTitle(row.title)||'记录中的协作'}（{row.count}）</option>)}
      </select>
     </label>
-    <button type="button" className="ghost" onClick={()=>setShareOpen(true)}>分享预览</button>
+    <button type="button" className="ghost" onClick={()=>{setShareOpen(true);setMoreOpen(false);}}>分享预览</button>
+    <button type="button" className="ghost" disabled={controlsDisabled} onClick={()=>{setMode('replay');setReplayPick(null);replay.jump(0);replay.setPlaying(events.length>1);setMoreOpen(false);}}>回放全部记录</button>
     {localMode&&tokenRef.current?<button type="button" onClick={backToLive}>返回实时</button>:null}
-   </div>
-  </header>
-
-  <p className="explainer">
-   本页只读取已记录的事件：白龙侧 = Codex，蓝鲸侧 = DeepSeek。皮肤代表“哪一侧”，不代表真实模型；
-   工具名、实例与模型都直接来自各自的记录，缺失时显示“未知”。页面不执行命令、不修改任何记录。
-  </p>
+    <label className="check"><input type="checkbox" checked={stageOn} onChange={event=>setStageOn(event.target.checked)}/><span>舞台字幕</span></label>
+    <label className="check"><input type="checkbox" checked={calm} onChange={event=>setCalm(event.target.checked)}/><span>减少动效</span></label>
+    <p className="explainer">白龙 = Codex，蓝鲸 = DeepSeek。角色皮肤与舞台字幕是演出；实际操作以记录为准。</p>
+  </div>
   {offline?<p className="banner warn-banner" role="note">离线回放：此页面不联网、不请求接口，内容为导出时的静态快照。分享导出前请人工检查敏感信息。</p>:null}
   {demo?<p className="banner" role="note">示例回放：静态示例数据，不会请求网络，也不会调用任何模型。点击“返回实时”可回到实时记录。</p>:null}
   {streamNotice&&!localMode?<p className="banner" role="alert">{streamNotice} <button type="button" className="ghost" onClick={()=>{const api=apiRef.current;if(api)void loadRun(api,runId);}}>手动重连</button></p>:null}
   {notice?<p className="banner error" role="alert">{notice}{authBad?<span className="muted">（界面不会显示或导出令牌。）</span>:null}</p>:null}
 
-  <div className="replay-bar">
+  <div className="primary-actions">
+   <button type="button" onClick={()=>{if(latestChange)chooseEvent(events.findIndex(event=>event.id===latestChange.id));}} disabled={!latestChange}>查看最近修改</button>
+   <button type="button" className="ghost" onClick={()=>{if(handoffIndex<0)return;setMode('replay');setReplayPick(null);replay.jump(handoffIndex);replay.setPlaying(handoffIndex<events.length-1);}} disabled={handoffIndex<0}>重播最近交接</button>
+   {mode==='replay'?<button type="button" className="ghost" onClick={()=>{setMode('live');setReplayPick(null);}}>回到现场</button>:null}
+  </div>
+
+  <div className="replay-bar" hidden={mode!=='replay'}>
+   {handoffIndex===events.length-1&&handoffIndex>=0?<p className="replay-note" role="status">这次派活后暂无后续记录，已定位到派活。</p>:null}
+   <details className="replay-advanced"><summary>回放控制</summary><div className="advanced-body">
    <div className="mode-switch" role="group" aria-label="实时或回放">
     <button type="button" className={mode==='live'?'active':''} aria-pressed={mode==='live'} onClick={()=>setMode('live')}>实时</button>
     <button type="button" className={mode==='replay'?'active':''} aria-pressed={mode==='replay'} onClick={()=>setMode('replay')} disabled={controlsDisabled}>回放</button>
    </div>
-   <button type="button" onClick={()=>{setMode('replay');if(replay.playing)replay.setPlaying(false);else replay.play();}} disabled={controlsDisabled}>
-    {replay.playing?'暂停':'播放'}
-   </button>
    <button type="button" className="ghost" onClick={()=>{setMode('replay');replay.step(-1);}} disabled={controlsDisabled}>上一条</button>
    <button type="button" className="ghost" onClick={()=>{setMode('replay');replay.step(1);}} disabled={controlsDisabled}>下一条</button>
    <label className="speed">速度
@@ -310,6 +325,12 @@ export default function App(){
      {[1,2,4].map(value=><option key={value} value={value}>{value}x</option>)}
     </select>
    </label>
+   <button type="button" className="ghost" onClick={()=>jumpTo(isHandoff)} disabled={controlsDisabled}>下一处交接</button>
+   <button type="button" className="ghost" onClick={()=>jumpTo(event=>isFailure(event)||isHandoff(event))} disabled={controlsDisabled}>下一处失败或交接</button>
+   </div></details>
+   <button type="button" onClick={()=>{setMode('replay');if(replay.playing)replay.setPlaying(false);else replay.play();}} disabled={controlsDisabled}>
+    {replay.playing?'暂停':'播放'}
+   </button>
    <label className="scrub">
     <span className="muted">记录时间 {currentLabel} / {endLabel}</span>
     <input type="range" min={0} max={Math.max(1,replay.duration)} step={100}
@@ -317,10 +338,6 @@ export default function App(){
      disabled={controlsDisabled} aria-label="回放时间位置"
      onChange={event=>{setMode('replay');setReplayPick(null);replay.scrub(Number(event.target.value));}}/>
    </label>
-   <button type="button" className="ghost" onClick={()=>jumpTo(isHandoff)} disabled={controlsDisabled}>下一处交接</button>
-   <button type="button" className="ghost" onClick={()=>jumpTo(event=>isFailure(event)||isHandoff(event))} disabled={controlsDisabled}>下一处失败或交接</button>
-   <label className="check"><input type="checkbox" checked={stageOn} onChange={event=>setStageOn(event.target.checked)}/><span>舞台字幕</span></label>
-   <label className="check"><input type="checkbox" checked={calm} onChange={event=>setCalm(event.target.checked)}/><span>减少动效</span></label>
   </div>
 
   <main className="layout">
@@ -330,13 +347,26 @@ export default function App(){
      <p>{authBad?'请从启动命令输出的地址重新打开界面，令牌只保存在本次会话中。':connection==='disconnected'?'这表示与本地服务的连接中断，并不代表代理失败；记录本身可能仍然完整。':'还没有任何实时记录。可以先看示例回放，界面完全离线，不会调用模型。'}</p>
     </div>:null}
     <DeskPanel actors={actors} assets={loaded?.assets} mode={mode} now={stageNow} stageOn={stageOn} stageEvent={stageEvent} packet={packet} onPacket={()=>{if(packet)chooseEvent(events.findIndex(event=>event.id===packet.id));evidenceRef.current?.focus();}}/>
-    <div className="desk-extra">
+    <details className="desk-extra"><summary>记录与身份说明</summary>
      <span>白龙侧实例：{actors.codex.sessionLabel}</span>
      <span>蓝鲸侧实例：{actors.deepseek.sessionLabel}</span>
      <span>{sideText('system')}事件不参与姿态变化</span>
-    </div>
+    </details>
    </section>
 
+   <section className="recent-activity" aria-label="最近活动">
+    <div className="pane-head"><h2>双方最近做了什么</h2><span className="muted">真实操作 · 点击看详情</span></div>
+    {!recent.length?<p className="muted">等待记录，演员还没收到剧本。</p>:null}
+    {recent.map(({event,index})=><button type="button" key={event.id} data-actor={event.actor} className={`activity-button activity-${event.actor}`} onClick={()=>chooseEvent(index)}>
+     <span className="recent-actor">{ACTOR_LABEL[event.actor]}</span>
+     <span className="recent-kind">{KIND_LABEL[event.kind]}</span>
+     <span className="recent-summary">{eventSummary(event)}</span>
+     {event.evidence==='unknown'?<span className="t-flag">归属未知</span>:null}
+     <span className="t-time">{clockTime(event.at,finiteStart)}</span>
+    </button>)}
+   </section>
+
+   <details className="history-details"><summary>全部记录 · {events.length} 条</summary>
    <section className="timeline-wrap" aria-label="活动时间线区域">
     <div className="pane-head">
      <h2>活动时间线</h2>
@@ -344,12 +374,15 @@ export default function App(){
     </div>
     <div className="timeline-scroll"><Timeline events={events} index={displayIndex} mode={mode} onSelect={chooseEvent} listRef={listRef}/></div>
    </section>
+   </details>
 
+   <details className="evidence-details" open={evidenceOpen} onToggle={event=>setEvidenceOpen(event.currentTarget.open)}><summary>操作详情{displayEvent?` · ${ACTOR_LABEL[displayEvent.actor]} · ${KIND_LABEL[displayEvent.kind]}`:''}</summary>
    <EvidencePanel event={displayEvent} startMs={finiteStart} panelRef={evidenceRef}/>
+   </details>
   </main>
 
   <footer className="foot">
-   <p>HandoffFM · 记录、回放与证据。页面不执行命令，不修改记录，也不显示访问令牌。</p>
+   <p>交稿不是验收。字幕是演出，记录是证据。</p>
    <ArtCredits/>
   </footer>
 

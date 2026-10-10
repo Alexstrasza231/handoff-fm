@@ -1,4 +1,4 @@
-import {test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,selectedSeq,timelineRows} from './fixture';
+import {openHistory,openEvidence,openReplayControls,test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,selectedSeq,timelineRows} from './fixture';
 import {writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -46,6 +46,8 @@ test('the offline export is self-contained, inert, and still replayable',async (
  const blocked:string[]=[];
  await page.route(/^https?:\/\//,route=>{blocked.push(route.request().url());return route.abort();});
  await page.goto(pathToFileURL(htmlPath).href);
+ await openHistory(page);
+ await openEvidence(page);
 
  await expect(page.locator('.status')).toHaveText('离线回放');
  await expect(page.getByRole('note')).toContainText('离线回放');
@@ -65,6 +67,9 @@ test('the offline export is self-contained, inert, and still replayable',async (
 
  // Replay controls work with no service behind them.
  await expect(selectedSeq(page)).toHaveText(`#${events.length}`);
+ await openReplayControls(page);
+ await page.getByLabel('回放时间位置').focus();
+ await page.keyboard.press('End');
  await page.getByRole('button',{name:'回放',exact:true}).click();
  await expect(page.getByRole('button',{name:'回放',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(selectedSeq(page)).toHaveText(`#${events.length}`);

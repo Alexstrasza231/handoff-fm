@@ -1,4 +1,4 @@
-import {test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,replayRange,selectedSeq,timelineRows} from './fixture';
+import {openReplayControls,test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,replayRange,selectedSeq,timelineRows} from './fixture';
 
 const KEY_ONE='CANARY_KEYBOARD_ONE_1a2b';
 const KEY_TWO='CANARY_KEYBOARD_TWO_3c4d';
@@ -19,7 +19,7 @@ test('keyboard moves the selection, steps the replay, and respects form controls
  await expect(selectedSeq(page)).toHaveText('#4');
 
  // Focus something inside the app frame; the newest record is selected.
- await page.getByRole('button',{name:'实时',exact:true}).focus();
+ await page.getByRole('button',{name:'更多',exact:true}).focus();
 
  await page.keyboard.press('ArrowUp');
  await expect(selectedSeq(page)).toHaveText('#3');
@@ -31,6 +31,7 @@ test('keyboard moves the selection, steps the replay, and respects form controls
 
  // `,` steps back into replay mode, `.` steps forward again.
  await page.keyboard.press(',');
+ await openReplayControls(page);
  await expect(page.getByRole('button',{name:'回放',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(selectedSeq(page)).toHaveText('#3');
 

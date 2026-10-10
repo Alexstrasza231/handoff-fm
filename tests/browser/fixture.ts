@@ -224,8 +224,30 @@ export const selectedTime=(page:Page)=>page.locator('.timeline-row.is-selected .
 export const replayRange=(page:Page)=>page.getByLabel('回放时间位置');
 export const speedSelect=(page:Page)=>page.getByLabel('回放速度');
 
+export async function openMore(page:Page):Promise<void>{
+ const button=page.getByRole('button',{name:'更多',exact:true});
+ if(await button.getAttribute('aria-expanded')!=='true')await button.click();
+}
+export async function openHistory(page:Page):Promise<void>{
+ if(await page.locator('.history-details').getAttribute('open')===null)await page.locator('.history-details > summary').click();
+}
+export async function openEvidence(page:Page):Promise<void>{
+ if(await page.locator('.evidence-details').getAttribute('open')===null)await page.locator('.evidence-details > summary').click();
+}
+export async function openReplayControls(page:Page):Promise<void>{
+ if(!await page.locator('.replay-bar').isVisible()){
+  const handoff=page.getByRole('button',{name:'重播最近交接',exact:true});
+  if(await handoff.isEnabled())await handoff.click();
+  else{await openMore(page);await page.getByRole('button',{name:'回放全部记录',exact:true}).click();}
+  const pause=page.getByRole('button',{name:'暂停',exact:true});
+  if(await pause.isVisible())await pause.click();
+ }
+ if(await page.locator('.replay-advanced').getAttribute('open')===null)await page.locator('.replay-advanced > summary').click();
+}
+
 /** Enter the built-in sample replay from the empty live view. */
 export async function enterDemo(page:Page,expectedEvents:number):Promise<void>{
+ await openMore(page);
  await page.getByRole('button',{name:'试玩示例'}).click();
  await expect(timelineRows(page)).toHaveCount(expectedEvents);
 }

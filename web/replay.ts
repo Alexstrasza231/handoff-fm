@@ -27,13 +27,16 @@ export interface ReplayWindow{
  offsets:number[];
 }
 
-/** Recorded-time window: relative offsets preserve the real timing of the recording. */
+/** Playback follows reception order. Clamp producer clock regressions only in the
+ * playhead offsets; original events/timestamps remain unchanged in the evidence. */
 export function timeWindow(events:FMEvent[]):ReplayWindow{
  const start=Date.parse(events[0]?.at??'');
  const base=Number.isFinite(start)?start:0;
+ let previous=0;
  const offsets=events.map(event=>{
   const at=Date.parse(event.at);
-  return Number.isFinite(at)?Math.max(0,at-base):0;
+  previous=Math.max(previous,Number.isFinite(at)?Math.max(0,at-base):0);
+  return previous;
  });
  return {events,duration:offsets.at(-1)??0,offsets};
 }

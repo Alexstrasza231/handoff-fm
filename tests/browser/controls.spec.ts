@@ -1,4 +1,4 @@
-import {test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,timelineRows} from './fixture';
+import {openMore,openEvidence,test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,timelineRows} from './fixture';
 
 const EVIDENCE_TEXT='CANARY_CAPTION_EVIDENCE_3d07';
 const CAPTIONS_OFF='舞台字幕已关闭（证据面板仍然保留全部记录）。';
@@ -15,6 +15,8 @@ test.describe('stage captions',()=>{
  test('captions are labelled, can be switched off, and never hide the evidence',async ({page,watcher,pageErrors})=>{
   await seedCaptionedRun(watcher);
   await page.goto(watcher.url);
+  await openMore(page);
+  await openEvidence(page);
   await expect(timelineRows(page)).toHaveCount(3);
 
   const stage=page.locator('.stage-line p');
@@ -46,6 +48,8 @@ test.describe('reduced motion',()=>{
  test('the operating-system preference is honoured and can be overridden',async ({page,watcher,pageErrors})=>{
   await seedCaptionedRun(watcher);
   await page.goto(watcher.url);
+  await openMore(page);
+  await openEvidence(page);
   await expect(timelineRows(page)).toHaveCount(3);
 
   expect(await page.evaluate(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
@@ -72,6 +76,8 @@ test.describe('motion default',()=>{
  test('calm stays off when reduced motion is not requested',async ({page,watcher,pageErrors})=>{
   await seedCaptionedRun(watcher);
   await page.goto(watcher.url);
+  await openMore(page);
+  await openEvidence(page);
   await expect(timelineRows(page)).toHaveCount(3);
 
   expect(await page.evaluate(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(false);

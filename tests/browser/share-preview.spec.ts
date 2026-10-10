@@ -1,5 +1,5 @@
 import type {Page} from '@playwright/test';
-import {test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,selectedSeq,timelineRows,RUN_ID,CODEX_SESSION,DEEPSEEK_SESSION} from './fixture';
+import {openMore,openEvidence,test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,selectedSeq,timelineRows,RUN_ID,CODEX_SESSION,DEEPSEEK_SESSION} from './fixture';
 
 const PROMPT='CANARY_PROMPT_补齐空桌提示_7f3a';
 const PRIVATE_PATH='canary-private-dir/notes/label.ts';
@@ -23,6 +23,8 @@ test('share preview excludes prompts, paths, diffs and outputs by default',async
   makeEvent({id:'canary-44',actor:'codex',kind:'turn.completed',offsetSeconds:3,data:{}})
  ]);
  await page.goto(watcher.url);
+  await openMore(page);
+  await openEvidence(page);
  await expect(timelineRows(page)).toHaveCount(4);
 
  await page.getByRole('button',{name:'分享预览'}).click();
@@ -53,6 +55,8 @@ test('each opt-in is exact and identifiers stay aliased',async ({page,watcher,pa
   makeEvent({id:'canary-54',actor:'codex',kind:'turn.completed',offsetSeconds:3,data:{}})
  ]);
  await page.goto(watcher.url);
+  await openMore(page);
+  await openEvidence(page);
  await expect(timelineRows(page)).toHaveCount(4);
  await page.getByRole('button',{name:'分享预览'}).click();
 

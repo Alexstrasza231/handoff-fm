@@ -186,6 +186,14 @@ It prints JSON and exits non-zero if a hard requirement is missing:
 
 ## 6. Watch: the live local viewer
 
+The development viewer now starts with two characters, a concise task title and six recent activities. Every activity names the recorded side, operation and target; unknown attribution stays unknown. Click an activity or handoff packet to open evidence, then expand raw JSON if needed.
+
+- **查看最近修改** opens the latest recorded file diff with one click.
+- **重播最近交接** starts at the latest dispatch; **回到现场** returns to live mode. Replay controls retain speed, stepping and handoff/failure navigation.
+- **更多** contains run selection, sample playback, sharing and caption/motion preferences. Full history and instance information are expandable.
+
+Stage captions are fixed fictional dialogue. Real quotes and command results remain in evidence. This iteration is in the current source/local build; the published v0.1.0 bundle retains its original UI.
+
 ```powershell
 node dist/cli.js watch --project C:\work\my-app
 node dist/cli.js watch --project C:\work\my-app --port 4500   # if 4417 is taken

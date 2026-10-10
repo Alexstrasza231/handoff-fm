@@ -1,5 +1,5 @@
 import type {Page} from '@playwright/test';
-import {test,expect,characterArt,enterDemo,expectNoUnexpectedErrors,replayRange,selectedKind,selectedSeq,speedSelect,selectedTime} from './fixture';
+import {openHistory,openEvidence,openReplayControls,test,expect,characterArt,enterDemo,expectNoUnexpectedErrors,replayRange,selectedKind,selectedSeq,speedSelect,selectedTime} from './fixture';
 import {demoEvents} from '../../web/demo';
 
 /**
@@ -14,12 +14,17 @@ const modeButton=(page:Page,name:'实时'|'回放')=>page.getByRole('button',{na
 test('sample replay is labelled and playback can be paused',async ({page,watcher,pageErrors})=>{
  await page.goto(watcher.url);
  await enterDemo(page,DEMO_COUNT);
+ await openHistory(page);
+ await openEvidence(page);
+ await openReplayControls(page);
+ await replayRange(page).focus();
+ await page.keyboard.press("End");
 
  await expect(page.getByRole('note')).toContainText('示例回放');
  await expect(page.getByRole('note')).toContainText('不会请求网络');
  await expect(page.locator('.status')).toHaveText('示例回放');
  await expect(page.getByRole('button',{name:'返回实时'})).toBeVisible();
- await expect(modeButton(page,'实时')).toHaveAttribute('aria-pressed','true');
+ await expect(modeButton(page,'回放')).toHaveAttribute('aria-pressed','true');
  await expect(selectedSeq(page)).toHaveText(`#${DEMO_COUNT}`);
 
  // Live mode parks the playhead at the end of the recording window.
@@ -48,6 +53,11 @@ test('sample replay is labelled and playback can be paused',async ({page,watcher
 test('scrubbing moves the playhead to the recorded position',async ({page,watcher,pageErrors})=>{
  await page.goto(watcher.url);
  await enterDemo(page,DEMO_COUNT);
+ await openHistory(page);
+ await openEvidence(page);
+ await openReplayControls(page);
+ await replayRange(page).focus();
+ await page.keyboard.press("End");
 
  // Drive the scrub control the way a user does. `fill()` cannot be used here: it assigns
  // `input.value` through React's own value tracker, so React would not observe the change.
@@ -78,6 +88,11 @@ test('scrubbing moves the playhead to the recorded position',async ({page,watche
 test('the speed control changes the playback rate',async ({page,watcher,pageErrors})=>{
  await page.goto(watcher.url);
  await enterDemo(page,DEMO_COUNT);
+ await openHistory(page);
+ await openEvidence(page);
+ await openReplayControls(page);
+ await replayRange(page).focus();
+ await page.keyboard.press("End");
 
  const speed=speedSelect(page);
  await expect(speed.locator('option')).toHaveText(['1x','2x','4x']);
@@ -102,6 +117,11 @@ test('the speed control changes the playback rate',async ({page,watcher,pageErro
 test('jump buttons land on handoff and failure records',async ({page,watcher,pageErrors})=>{
  await page.goto(watcher.url);
  await enterDemo(page,DEMO_COUNT);
+ await openHistory(page);
+ await openEvidence(page);
+ await openReplayControls(page);
+ await replayRange(page).focus();
+ await page.keyboard.press("End");
 
  await page.getByRole('button',{name:'下一处交接',exact:true}).click();
  await expect(selectedKind(page)).toHaveText('派发代理');

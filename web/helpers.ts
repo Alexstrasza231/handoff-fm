@@ -79,7 +79,7 @@ export function eventSummary(event:FMEvent):string{
   case 'task.started':return text(d.prompt)||'(无任务文本)';
   case 'session.started':return text(d.source)?`来源 ${text(d.source)}`:'会话开始';
   case 'delegate.started':return text(d.title)||'派出代理';
-  case 'tool.started':{const tool=eventTool(event)||'未知工具';const target=text(d.input&&typeof d.input==='object'?(d.input as Record<string,unknown>).path||(d.input as Record<string,unknown>).file:'');return target?`${tool} → ${baseName(target)}`:tool;}
+  case 'tool.started':{const tool=eventTool(event)||'未知工具';const input=d.input&&typeof d.input==='object'?d.input as Record<string,unknown>:{};const target=text(input.path||input.file||input.file_path||input.filePath);return target?`${tool} → ${baseName(target)}`:tool;}
   case 'tool.completed':{const exit=toolExitText(d.exitCode);return `${eventTool(event)||'工具'} · ${toolCompletionLabel(event)}${exit?` · ${exit}`:''}`;}
   case 'file.changed':return text(d.path)?baseName(text(d.path)):text(d.change)||'文件变化';
   case 'agent.message':return text(d.text)||'(空声明)';
@@ -97,19 +97,27 @@ export function eventSummary(event:FMEvent):string{
 /** Fixed stage lines, clearly labelled 舞台字幕. Real quotes only live in the evidence panel. */
 export function stageLine(event:FMEvent):string{
  switch(event.kind){
-  case 'session.started':return '灯光师就位，话筒试音——HandoffFM 开播！';
-  case 'task.started':return '今天的题面：交给两位同学接力。';
-  case 'delegate.started':return event.actor==='codex'?'白龙把卷轴递了过去：这里交给你啦。':'蓝鲸接住了卷轴：收到，我来。';
-  case 'tool.started':{const pose=poseForTool(eventTool(event));return pose==='read'?'翻资料中，哗啦哗啦。':pose==='edit'?'动笔了，落笔要稳。':'跑起来了，别眨眼。';}
-  case 'tool.completed':return toolCompletionLabel(event)==='命令退出码 0'?'叮——命令安全落地。':'先把结果记在案上。';
-  case 'file.changed':return event.evidence==='observed'?'文件页翻过一页，墨迹未干。':event.evidence==='unknown'?'这页是谁改的？先记个问号。':'文件有新动静。';
-  case 'agent.message':return '两位同学先后发言，记录在案。';
-  case 'delegate.completed':return '交稿！请检查，掌声先欠着。';
-  case 'delegate.failed':return '这次没接稳，先如实记录。';
-  case 'turn.completed':return '这一幕杀青，回放随时可以看。';
-  case 'turn.interrupted':return '话说到一半被打断了。';
-  case 'recording.gap':return '嗡——这一段录音有缺口。';
-  default:return '继续记录中。';
+  case 'session.started':return '白龙：开工。蓝鲸：饭碗就位。';
+  case 'task.started':return '白龙：新任务来了。蓝鲸：饭可以等，需求不能漏。';
+  case 'delegate.started':return event.actor==='codex'?'白龙：这一棒交给你。蓝鲸：收到，饭先放一边。':'新任务递到了舞台中央，先记下这次交接。';
+  case 'tool.started':{
+   const tool=eventTool(event),pose=poseForTool(tool);
+   if(pose==='read')return '白龙：先翻资料。蓝鲸：书到用时方恨多。';
+   if(pose==='edit')return '白龙：这行再揉揉。蓝鲸：代码不熟，不能出锅。';
+   return isCommandTool(tool)?'白龙：跑一遍。蓝鲸：希望绿灯比饭先到。':'蓝鲸：工具开工。白龙：结果我盯着。';
+  }
+  case 'tool.completed':{
+   if(event.data.status==='failed'||typeof event.data.exitCode==='number'&&event.data.exitCode!==0)return '白龙：红了。蓝鲸：这锅先查日志。';
+   return toolCompletionLabel(event)==='命令退出码 0'?'白龙：这条命令过了。蓝鲸：开香槟？白龙：先别。':'蓝鲸：工具收工。白龙：结果我看看。';
+  }
+  case 'file.changed':return event.evidence==='unknown'?'白龙：谁改的？蓝鲸：先挂问号，别急着认领。':event.evidence==='observed'?'蓝鲸：文件有新墨迹。白龙：差异拿来看看。':'白龙：收到修改声明。蓝鲸：以证据为准。';
+  case 'agent.message':return '白龙：发言已收录。蓝鲸：证据比音量重要。';
+  case 'delegate.completed':return '蓝鲸：交稿！白龙：红笔已经准备好了。';
+  case 'delegate.failed':return '蓝鲸：这棒没接住。白龙：先看失败记录。';
+  case 'turn.completed':return '白龙：这一轮收工。蓝鲸：回放见。';
+  case 'turn.interrupted':return '白龙：暂停拍摄。蓝鲸：这段被打断了。';
+  case 'recording.gap':return '白龙：这段没录全。蓝鲸：导演，少了一帧。';
+  default:return '白龙：等新记录。蓝鲸：饭先保温。';
  }
 }
 

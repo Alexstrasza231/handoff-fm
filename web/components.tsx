@@ -52,28 +52,48 @@ function ago(ms:number):string|null{
  return `${Math.floor(minutes/60)} 小时前`;
 }
 
+/** 实例 ID 很长：卡片上只显示缩短形式，完整 ID 始终保留在 title 里。 */
+function shortSession(id:string):string{
+ const value=id.trim();
+ if(value.length<=14)return value;
+ return `${value.slice(0,7)}…${value.slice(-4)}`;
+}
+
 function ActorCard({view,character,label,assets,mode,now}:{
  view:ActorView;character:Character;label:string;assets?:Record<string,string>;mode:Mode;now:number;
 }){
  const stale=view.at?ago(now-Date.parse(view.at)):null;
+ const latest=view.sessions.length?view.sessions[view.sessions.length-1]:null;
+ const latestLabel=latest?shortSession(latest):'尚未记录到实例';
+ const earlier=view.sessions.slice(0,-1);
  return <section className={`actor-card actor-${character}${view.lastActionPose?' has-action':''}`} aria-label={`${label} 状态卡`}>
   <header className="actor-head">
-   <div>
+   <div className="actor-id">
     <h3>{label}</h3>
-    <p className="actor-session" title={view.sessionLabel}>实例 {view.sessionLabel}</p>
+    <p className="actor-session" title={latest??view.sessionLabel}>实例 <span className="actor-session-id">{latestLabel}</span></p>
    </div>
    <span className="pose-chip">当前姿态：{POSE_LABEL[view.pose]}</span>
   </header>
   <CharacterView character={character} pose={view.pose} name={label} assets={assets} muted={!view.lastActionPose}/>
-  <dl className="actor-meta">
-   <div><dt>状态</dt><dd>{view.status}</dd></div>
-   <div><dt>模型</dt><dd>{view.model}</dd></div>
-   <div><dt>最近记录</dt><dd>{humanTime(view.at)}{stale?`（${stale}）`:''}</dd></div>
-  </dl>
-  <p className="actor-note">
-   角色皮肤代表“{ACTOR_LABEL[view.actor]}”这一侧，不代表真实模型或真实作者。
-   {view.lastActionPose?'姿态取自最近一次观测到的动作；没有新记录时只标注“最近记录”，不代表仍在持续工作。':'还没有观测到工具动作，姿态保持待命。'}
+  <p className="actor-facts">
+   <span className="fact"><b>状态</b>{view.status}</span>
+   <span className="fact"><b>模型</b>{view.model}</span>
   </p>
+  <details className="actor-more">
+   <summary>实例信息</summary>
+   <dl className="actor-meta">
+    <div><dt>当前状态</dt><dd>{view.status}</dd></div>
+    <div><dt>模型</dt><dd>{view.model}</dd></div>
+    <div><dt>最新实例</dt><dd>{latest??'尚未记录到实例'}</dd></div>
+    {earlier.length?<div><dt>更早实例</dt><dd>{earlier.join('、')}</dd></div>:null}
+    <div><dt>最近记录</dt><dd>{humanTime(view.at)}{stale?`（${stale}）`:''}</dd></div>
+    <div><dt>姿态依据</dt><dd>{view.lastActionPose?'最近一次观测到的动作':'尚未观测到工具动作'}</dd></div>
+   </dl>
+   <p className="actor-note">
+    角色皮肤代表“{ACTOR_LABEL[view.actor]}”这一侧，不代表真实模型或真实作者；名字与模型都来自记录本身，缺失时写“未知”。
+    {view.lastActionPose?'姿态取自最近一次观测到的动作；没有新记录时只标注“最近记录”，不代表仍在持续工作。':'还没有观测到工具动作，姿态保持待命。'}
+   </p>
+  </details>
   {mode==='replay'?<p className="actor-replay">回放视图：只呈现到当前时间点为止的记录。</p>:null}
  </section>;
 }
@@ -87,9 +107,10 @@ export function DeskPanel({actors,assets,mode,now,stageOn,stageEvent,packet,onPa
    {packet?<button key={packet.id} type="button" className={`handoff-packet ${packet.kind==='delegate.started'?'packet-right':'packet-left'}`} onClick={onPacket} aria-label="查看交接证据">
     <span aria-hidden="true">📁</span><strong>{packet.kind==='delegate.started'?'任务已递出':'交稿待检查'}</strong><small>点击查看真实交接记录</small>
    </button>:null}
-   <div className="stage-line" aria-live="polite">
+   <div className="stage-line" aria-live="polite" aria-label="舞台字幕">
     <span className="stage-tag">舞台字幕</span>
     <p>{stageOn?(stageEvent?stageLine(stageEvent):'等待第一段记录，字幕还在后台候场。'):'舞台字幕已关闭（证据面板仍然保留全部记录）。'}</p>
+    <span className="stage-note">趣味台词 · 实际操作见下方记录</span>
    </div>
    <div className="stage-hint" aria-hidden="true">HandoffFM · 交接台</div>
   </div>
@@ -159,10 +180,10 @@ export function EvidencePanel({event,startMs,panelRef}:{event:FMEvent|null;start
     {typeof data.status==='string'?<p>上报状态：{data.status}</p>:null}
     {data.truncated?<p className="warn">该记录被截断，内容与归属都不完整。</p>:null}
    </div>:null}
-   <div className="evidence-block">
-    <h4>原始数据（纯文本）</h4>
+   <details className="evidence-block">
+    <summary>原始数据（纯文本）</summary>
     <pre className="raw">{JSON.stringify(data,null,1)??''}</pre>
-   </div>
+   </details>
   </>}
  </section>;
 }

@@ -8,8 +8,10 @@
 
 **Tech Stack:** Existing TypeScript, React, Vite, Node test runner and Playwright.
 
-- [ ] Add failing presentation and browser assertions. Test wrapped prompt titles, recent event identities, unknown attribution and compact evidence/replay flow. Run `node node_modules/tsx/dist/cli.mjs --test tests/presentation.test.ts` and `npx playwright test tests/browser/simple-stage.spec.ts --workers=1`; confirm missing behavior.
-- [ ] Implement `web/presentation.ts` for title cleanup, recent activity indexes and latest handoff location. Delegate only `web/components.tsx` stage/card sections, `web/styles.css`, and `web/helpers.ts` subtitle function to DeepSeek; preserve Timeline/EvidencePanel and evidence semantics.
-- [ ] Integrate in `web/App.tsx`: concise current title, more menu, latest diff, latest handoff replay, recent activity, expandable history and evidence. Keep all raw fields available. Update existing browser helpers to reveal intentionally collapsed controls, preserving their substantive assertions.
-- [ ] Run `npm run check`, `npm run test:browser -- --workers=2`, inspect the actual `127.0.0.1:4417` page after rebuilding, and save a screenshot. Fix failures before declaring success.
-- [ ] Update bilingual usage notes and check `git diff --check`. Deliver the revised local page; do not publish a new release as part of this UI iteration.
+- [x] Add failing presentation and browser assertions. Test wrapped prompt titles, recent event identities, unknown attribution and compact evidence/replay flow. Run `node node_modules/tsx/dist/cli.mjs --test tests/presentation.test.ts` and `npx playwright test tests/browser/simple-stage.spec.ts --workers=1`; confirm missing behavior.
+- [x] Implement `web/presentation.ts` for title cleanup, recent activity indexes and latest handoff location. Delegate only `web/components.tsx` stage/card sections, `web/styles.css`, and `web/helpers.ts` subtitle function to DeepSeek; preserve Timeline/EvidencePanel and evidence semantics.
+- [x] Integrate in `web/App.tsx`: concise current title, more menu, latest diff, latest handoff replay, recent activity, expandable history and evidence. Keep all raw fields available. Update existing browser helpers to reveal intentionally collapsed controls, preserving their substantive assertions.
+- [x] Run `npm run check`, `npm run test:browser -- --workers=2`, inspect the actual `127.0.0.1:4417` page after rebuilding, and save a screenshot. Fix failures before declaring success.
+- [x] Update bilingual usage notes and check `git diff --check`. Deliver the revised local page; do not publish a new release as part of this UI iteration.
+
+Verified on Windows: 57 core tests, 16 browser tests, typecheck, production build and git diff whitespace check passed. Narrow-panel and 390px views retain side-by-side characters. DeepSeek supplied the stage/style implementation and a read-only review; Codex corrected replay edge cases and kept raw evidence unchanged. Built viewer served at 127.0.0.1:4417. Existing demo component changes remain separate.
