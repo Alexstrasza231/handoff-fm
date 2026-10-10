@@ -5,7 +5,9 @@
 HandoffFM 在单个本地项目里观察一次**你已经授权**的 Codex ↔ DeepSeek 协作，把每条记录的
 证据等级原样保留，用白龙与蓝鲸的舞台形式回放，并只把你显式选中的内容导出成离线只读副本。
 
-<img src="docs/media/desk.png" alt="HandoffFM 直播台：左侧白龙（Codex），右侧蓝鲸（DeepSeek），下方是证据时间线" width="880">
+<a href="docs/media/real-handoff.webm"><img src="docs/media/real-desk.png" alt="真实 Windows 协作回放：白龙、鲸鱼女仆与组件代码差异" width="880"></a>
+
+[观看真实录屏](./docs/media/real-handoff.webm) · [查看对应事件与代码差异](./docs/media/real-events.json)
 
 [English](./README.md) · [使用指南](./docs/usage.zh-CN.md) · [证据模型](./docs/evidence.zh-CN.md)
 
@@ -136,8 +138,9 @@ npm run test:browser   # Playwright 验收测试，对着真实回环服务运�
   [Pixiv 作品 148186519](https://www.pixiv.net/artworks/148186519)。视频画面、配乐与第三方录像
   不包含在本分发中。
 
-真实的端到端录制正在准备，将放在 `docs/media/real-handoff.webm`；目前尚未包含，
-本文档也不会伪造任何截图或视频。
+已包含[真实 Windows 协作录屏](./docs/media/real-handoff.webm)与[审核后的事件导出](./docs/media/real-events.json)。
+录屏通过回放定位跳过等待，保留真实时间戳与证据等级：两次文件变化仍为归属未知，修正后的验证结果保留为代理声明。
+查看器另有明确标注的示例回放；[录制说明](./docs/media/README.md)区分二者。
 
 ## 文档
 

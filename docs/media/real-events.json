@@ -1,0 +1,281 @@
+[
+  {
+    "version": 1,
+    "id": "event-1",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "delegate.started",
+    "at": "1970-01-01T00:00:00.000Z",
+    "seq": 1,
+    "evidence": "observed",
+    "taskId": "task-3",
+    "parentTaskId": "task-4",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-2",
+    "runId": "run-1",
+    "sessionId": "instance-5",
+    "actor": "deepseek",
+    "kind": "session.started",
+    "at": "1970-01-01T00:00:02.600Z",
+    "seq": 2,
+    "evidence": "observed",
+    "taskId": "task-3",
+    "parentTaskId": "task-4",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-3",
+    "runId": "run-1",
+    "sessionId": "instance-5",
+    "actor": "deepseek",
+    "kind": "tool.started",
+    "at": "1970-01-01T00:00:03.956Z",
+    "seq": 3,
+    "evidence": "observed",
+    "taskId": "task-3",
+    "parentTaskId": "task-4",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-4",
+    "runId": "run-1",
+    "sessionId": "instance-5",
+    "actor": "deepseek",
+    "kind": "tool.started",
+    "at": "1970-01-01T00:00:05.323Z",
+    "seq": 4,
+    "evidence": "observed",
+    "taskId": "task-3",
+    "parentTaskId": "task-4",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-5",
+    "runId": "run-1",
+    "sessionId": "instance-5",
+    "actor": "deepseek",
+    "kind": "file.changed",
+    "at": "1970-01-01T00:00:05.520Z",
+    "seq": 5,
+    "evidence": "unknown",
+    "taskId": "task-3",
+    "parentTaskId": "task-4",
+    "data": {
+      "path": "examples/HandoffCard.tsx",
+      "diff": "Index: examples/HandoffCard.tsx\n===================================================================\n--- examples/HandoffCard.tsx\n+++ examples/HandoffCard.tsx\n@@ -1,4 +1,6 @@\n /** A tiny component used for the real Codex → DeepSeek → Codex acceptance run. */\n export function HandoffCard({title}:{title:string}){\n- return <article><h2>{title}</h2><p>Waiting for handoff</p></article>;\n+ // \"Submitted\" is not \"accepted\": this only marks the handoff as sent for\n+ // review, and a reviewer must still accept it before it counts as done.\n+ return <article><h2>{title}</h2><p>Submitted — awaiting review</p></article>;\n }\n",
+      "reason": "Observed during delegate tool; external event stream is not a pre-write barrier"
+    }
+  },
+  {
+    "version": 1,
+    "id": "event-6",
+    "runId": "run-1",
+    "sessionId": "instance-5",
+    "actor": "deepseek",
+    "kind": "tool.started",
+    "at": "1970-01-01T00:00:06.100Z",
+    "seq": 6,
+    "evidence": "observed",
+    "taskId": "task-3",
+    "parentTaskId": "task-4",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-7",
+    "runId": "run-1",
+    "sessionId": "instance-5",
+    "actor": "deepseek",
+    "kind": "agent.message",
+    "at": "1970-01-01T00:00:07.193Z",
+    "seq": 7,
+    "evidence": "declared",
+    "taskId": "task-3",
+    "parentTaskId": "task-4",
+    "data": {
+      "text": "Done.\n\n**File changed:** `examples/HandoffCard.tsx` (only file touched)\n\n**Change:**\n- Status text changed from `Waiting for handoff` to `Submitted — awaiting review`.\n- Added a two-line comment above the `return`: `\"Submitted\" is not \"accepted\"` — the status only means the handoff was sent for review, and a reviewer must still accept it before it counts as done.\n\n**API preserved:** same default export shape — `export function HandoffCard({title}:{title:string})`, unchanged props and element structure.\n\n**Not done (per instructions):** no other files modified, nothing committed, no other agents run, no credentials or chat history inspected."
+    }
+  },
+  {
+    "version": 1,
+    "id": "event-8",
+    "runId": "run-1",
+    "sessionId": "instance-5",
+    "actor": "deepseek",
+    "kind": "delegate.completed",
+    "at": "1970-01-01T00:00:07.459Z",
+    "seq": 8,
+    "evidence": "observed",
+    "taskId": "task-3",
+    "parentTaskId": "task-4",
+    "data": {
+      "exitCode": 0,
+      "reason": "completed"
+    }
+  },
+  {
+    "version": 1,
+    "id": "event-9",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "tool.started",
+    "at": "1970-01-01T00:00:14.021Z",
+    "seq": 9,
+    "evidence": "observed",
+    "taskId": "task-6",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-10",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "tool.started",
+    "at": "1970-01-01T00:00:22.609Z",
+    "seq": 10,
+    "evidence": "observed",
+    "taskId": "task-6",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-11",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "file.changed",
+    "at": "1970-01-01T00:00:23.237Z",
+    "seq": 11,
+    "evidence": "unknown",
+    "taskId": "task-6",
+    "data": {
+      "path": "examples/HandoffCard.tsx",
+      "diff": "Index: examples/HandoffCard.tsx\n===================================================================\n--- examples/HandoffCard.tsx\n+++ examples/HandoffCard.tsx\n@@ -1,6 +1,6 @@\n /** A tiny component used for the real Codex → DeepSeek → Codex acceptance run. */\n export function HandoffCard({title}:{title:string}){\n  // \"Submitted\" is not \"accepted\": this only marks the handoff as sent for\n  // review, and a reviewer must still accept it before it counts as done.\n- return <article><h2>{title}</h2><p>Submitted — awaiting review</p></article>;\n+ return <article aria-label=\"Handoff submission\"><h2>{title}</h2><p>Submitted — awaiting review</p><p>A command pass is not project acceptance.</p></article>;\n }\n",
+      "reason": "Indirect write or overlapping operation; attribution is unknown"
+    }
+  },
+  {
+    "version": 1,
+    "id": "event-12",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "tool.started",
+    "at": "1970-01-01T00:00:29.215Z",
+    "seq": 12,
+    "evidence": "observed",
+    "taskId": "task-6",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-13",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "tool.completed",
+    "at": "1970-01-01T00:00:34.434Z",
+    "seq": 13,
+    "evidence": "observed",
+    "taskId": "task-6",
+    "data": {
+      "output": "node_modules/@types/diff/index.d.ts(43,26): error TS2694: Namespace 'Intl' has no exported member 'Segmenter'.\r\n",
+      "status": "unknown"
+    }
+  },
+  {
+    "version": 1,
+    "id": "event-14",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "tool.started",
+    "at": "1970-01-01T00:00:39.678Z",
+    "seq": 14,
+    "evidence": "observed",
+    "taskId": "task-6",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-15",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "tool.completed",
+    "at": "1970-01-01T00:00:40.988Z",
+    "seq": 15,
+    "evidence": "observed",
+    "taskId": "task-6",
+    "data": {
+      "output": "/** A tiny component used for the real Codex → DeepSeek → Codex acceptance run. */\r\nexport function HandoffCard({title}:{title:string}){\r\n // \"Submitted\" is not \"accepted\": this only marks the handoff as sent for\r\n // review, and a reviewer must still accept it before it counts as done.\r\n return <article aria-label=\"Handoff submission\"><h2>{title}</h2><p>Submitted — awaiting review</p><p>A command pass is not project acceptance.</p></article>;\r\n}\r\n",
+      "status": "unknown"
+    }
+  },
+  {
+    "version": 1,
+    "id": "event-16",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "tool.started",
+    "at": "1970-01-01T00:25:40.848Z",
+    "seq": 16,
+    "evidence": "observed",
+    "taskId": "task-7",
+    "data": {}
+  },
+  {
+    "version": 1,
+    "id": "event-17",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "tool.completed",
+    "at": "1970-01-01T00:26:04.629Z",
+    "seq": 17,
+    "evidence": "observed",
+    "taskId": "task-7",
+    "data": {
+      "output": "",
+      "status": "unknown"
+    }
+  },
+  {
+    "version": 1,
+    "id": "event-18",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "agent.message",
+    "at": "1970-01-01T00:26:08.934Z",
+    "seq": 18,
+    "evidence": "declared",
+    "taskId": "task-7",
+    "data": {
+      "text": "The corrected verification command passed with exit status **0** and no output. No files were edited; trusted Hooks remained enabled."
+    }
+  },
+  {
+    "version": 1,
+    "id": "event-19",
+    "runId": "run-1",
+    "sessionId": "instance-2",
+    "actor": "codex",
+    "kind": "turn.completed",
+    "at": "1970-01-01T00:26:08.937Z",
+    "seq": 19,
+    "evidence": "observed",
+    "taskId": "task-7",
+    "data": {}
+  }
+]

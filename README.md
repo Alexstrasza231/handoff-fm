@@ -6,7 +6,13 @@ HandoffFM watches one already-authorized Codex ↔ DeepSeek collaboration in one
 keeps every record's evidence label attached, replays it as a whale-and-dragon stage, and exports
 an offline, read-only copy of the parts you explicitly choose.
 
-<img src="docs/media/desk.png" alt="HandoffFM desk: Codex dragon on the left, DeepSeek whale on the right, evidence timeline below" width="880">
+<a href="docs/media/real-handoff.webm"><img src="docs/media/real-desk.png" alt="Real Windows collaboration replay: Codex white dragon, DeepSeek whale maid and recorded component diff" width="880"></a>
+
+[Watch the real recording](./docs/media/real-handoff.webm) · [Reviewed event export](./docs/media/real-events.json)
+
+The recording follows a real Codex → DeepSeek → Codex component edit. Replay selection skips
+waiting time; timestamps and evidence labels are preserved. Both file changes remain `unknown`
+attribution, and the corrected verification result is an agent declaration. [Recording details](./docs/media/README.md).
 
 [中文说明](./README.zh-CN.md) · [Usage](./docs/usage.md) · [Evidence model](./docs/evidence.md)
 
@@ -149,8 +155,8 @@ release tarball work without dev dependencies. Rebuild before using any locally 
   [Pixiv artwork 148186519](https://www.pixiv.net/artworks/148186519). Video frames, soundtracks
   and third-party recordings are not distributed here.
 
-A real end-to-end recording is being prepared for `docs/media/real-handoff.webm`; it is not
-included yet, and no screenshot or video is fabricated here.
+The repository includes an actual browser recording of the real Windows collaboration, alongside
+a clearly labelled sample replay available in the viewer.
 
 ## Documentation
 
