@@ -11,6 +11,8 @@ Tech: Node >=22.12, TypeScript, React, Vite, Playwright. Independent new reposit
 - [x] T3 Give DeepSeek bounded UI/examples/documentation tasks and verify actual edits. Per the human's later art direction, ship sixteen classic community character pose adaptations, with per-asset attribution/noncommercial terms instead of the original CC BY design proposal.
 - [x] T4 Test-first loopback API, SSE restart/reconnect, selective offline export and injection escaping; integrate viewer/replay with actual data.
 - [x] T5 Browser tests, Windows real collaboration chain, independent spec/code review, bilingual documentation, actual recording and installation smoke check.
-- [ ] T6 Public Alexstrasza231/handoff-fm MIT code + separately licensed classic community character adaptations (see LICENSE-ASSETS); source and v0.1.0 package; Windows/Linux CI; verify published install and plugin commands.
+- [x] T6 Public Alexstrasza231/handoff-fm MIT code + separately licensed classic community character adaptations (see LICENSE-ASSETS); source and v0.1.0 package; Windows/Linux CI; verify published install and plugin commands.
+
+Release verification: commit 499b708 passed Windows/Linux CI (51 core tests, 13 browser tests, builds and package smoke checks). v0.1.0 was published; installation from its public tgz URL and a fresh official CLI plugin installation both produced the exact verified runtime hash. Local trusted hook definitions stayed unchanged while their prebuilt runtime was updated.
 
 Tracking policy: tool output is evidence, final agent messages are declarations; shell/overlap/truncated evidence has unknown attribution. No percent authorship. Exclude secrets/build/binary/>1MiB, no hidden reasoning. Export defaults contain generic roles/kinds/relative time only, details are opt-in and previewed. Unknown history stays unknown.
