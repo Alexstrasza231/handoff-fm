@@ -1,0 +1,8 @@
+{"description":"Project-scoped observation only. Never blocks, approves or rewrites agent tools.","hooks":{
+ "SessionStart":[{"hooks":[{"type":"command","command":"node \"${PLUGIN_ROOT}/dist/cli.js\" hook","timeout":3}]}],
+ "UserPromptSubmit":[{"hooks":[{"type":"command","command":"node \"${PLUGIN_ROOT}/dist/cli.js\" hook","timeout":3}]}],
+ "PreToolUse":[{"hooks":[{"type":"command","command":"node \"${PLUGIN_ROOT}/dist/cli.js\" hook","timeout":3}]}],
+ "PostToolUse":[{"hooks":[{"type":"command","command":"node \"${PLUGIN_ROOT}/dist/cli.js\" hook","timeout":3}]}],
+ "Stop":[{"hooks":[{"type":"command","command":"node \"${PLUGIN_ROOT}/dist/cli.js\" hook","timeout":3}]}],
+ "Interrupt":[{"hooks":[{"type":"command","command":"node \"${PLUGIN_ROOT}/dist/cli.js\" hook","timeout":3}]}]
+}}

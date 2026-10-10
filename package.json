@@ -1,0 +1,52 @@
+{
+  "name": "handoff-fm",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Watch Codex and DeepSeek hand work over, with replayable evidence and cute stage captions.",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "bin": {
+    "handoff-fm": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "web-dist",
+    "hooks",
+    "skills",
+    ".codex-plugin",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE",
+    "LICENSE-ASSETS",
+    "docs/usage*.md",
+    "docs/evidence*.md"
+  ],
+  "scripts": {
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsup src/cli.ts --format esm --platform node --target node22 --clean && vite build",
+    "dev": "vite --host 127.0.0.1",
+    "test:browser": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "diff": "^8.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/diff": "^7.0.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.0"
+  },
+  "repository": "github:Alexstrasza231/handoff-fm"
+}

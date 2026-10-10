@@ -1,0 +1,37 @@
+Character artwork is NOT covered by the code's MIT license.
+
+Source: ZipZipPipe, "AI娘化", Pixiv artwork 148186519, pages 0 and 3.
+https://www.pixiv.net/artworks/148186519
+https://www.pixiv.net/users/18604994
+The public source description permits use with author attribution and prohibits
+commercial use: "需要标注作者，不可商用。"
+
+DeepSeek whale maid (characters/deepseek-*.png): original whale character by
+上善 / 上善无形 (https://www.pixiv.net/users/62155430); DeepSeek maid adaptation
+by ZipZipPipe; chibi proportions, work props and pose variants adapted for
+HandoffFM by Alexstrasza231 using OpenAI image generation, October 2026.
+The source explicitly identifies this whale adaptation as CC BY-NC-SA 4.0.
+These whale sprites are distributed under CC BY-NC-SA 4.0:
+https://creativecommons.org/licenses/by-nc-sa/4.0/
+Attribution, noncommercial use and sharing adaptations under the same license
+are required. Keep this notice and identify further changes when redistributing.
+
+White dragon (characters/codex-*.png): community GPT dragon design by ZipZipPipe;
+chibi proportions, modest costume simplification, work props and pose variants
+adapted for HandoffFM by Alexstrasza231 using OpenAI image generation,
+October 2026. Distributed under the source author's attribution-required,
+noncommercial-use permission above. The source specifies CC BY-NC-SA for the
+whale only: we do NOT claim a separate CC license or MIT grant for the dragon.
+Retain source attribution and obtain appropriate permission for uses outside
+the author's stated terms. No claim of official affiliation or endorsement.
+
+The white dragon is a display skin for the Codex side, not a statement about
+the actual model identity. The interface separately shows observed tool/model
+metadata and displays "unknown" when it is unavailable.
+
+Reference videos are credited as inspiration; video frames, soundtracks and
+third-party recordings are not included in this distribution.
+
+The UI and offline exports include the same character attribution. Commercial
+users can replace these sprites with artwork licensed for their own use; the
+software code itself remains MIT.

@@ -1,0 +1,7 @@
+node_modules/
+.work/
+.handoff-fm/
+test-results/
+playwright-report/
+*.tgz
+debug.log
