@@ -26,3 +26,13 @@ test('collector deduplicates producer IDs durably across restarts',async()=>{
  await enqueue(root,{...event,id:'event-two',kind:'tool.completed'});await collect(root);
  assert.deepEqual((await readRun(root,'run-one')).map(x=>x.seq),[1,2]);
 });
+
+test('serial events arriving within one clock millisecond preserve producer order',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'hfm-order-'));await initProject(root);
+ const now=Date.now;const fixed=now();Date.now=()=>fixed;
+ try{
+  for(let i=0;i<32;i++)await enqueue(root,{version:1,id:`ordered-${i}`,runId:'ordered-run',actor:'codex',kind:'tool.started',at:new Date(fixed).toISOString(),sessionId:'ordered-session',evidence:'observed',data:{position:i}});
+ }finally{Date.now=now;}
+ await collect(root);
+ assert.deepEqual((await readRun(root,'ordered-run')).map(e=>e.data.position),Array.from({length:32},(_,i)=>i));
+});

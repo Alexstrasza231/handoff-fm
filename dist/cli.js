@@ -188,7 +188,7 @@ async function enqueue(root, event) {
   if (!validEvent(event)) throw new Error("Invalid event");
   const e = { ...event, data: sanitize(event.data), model: event.model ? String(sanitize(event.model)) : void 0 };
   delete e.seq;
-  const name = Date.now().toString().padStart(13, "0") + "-" + randomUUID2();
+  const name = Date.now().toString().padStart(13, "0") + "-" + process.hrtime.bigint().toString().padStart(20, "0") + "-" + randomUUID2();
   const file = join2(dir(root), "inbox", name + ".json");
   await writeFile(file + ".tmp", JSON.stringify(e), { flag: "wx" });
   await rename(file + ".tmp", file);

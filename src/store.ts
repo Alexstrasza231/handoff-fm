@@ -22,7 +22,9 @@ export function validEvent(e:FMEvent):boolean{return e?.version===1&&safeId(e.id
 export async function enqueue(root:string,event:FMEvent):Promise<void> {
  if(!validEvent(event))throw new Error('Invalid event');
  const e={...event,data:sanitize(event.data),model:event.model?String(sanitize(event.model)):undefined};delete e.seq;
- const name=Date.now().toString().padStart(13,'0')+'-'+randomUUID();const file=join(dir(root),'inbox',name+'.json');
+ // UUID alone shuffles serial events written within the same millisecond.
+ // A monotonic clock orders that tie while UUID retains cross-process uniqueness.
+ const name=Date.now().toString().padStart(13,'0')+'-'+process.hrtime.bigint().toString().padStart(20,'0')+'-'+randomUUID();const file=join(dir(root),'inbox',name+'.json');
  await writeFile(file+'.tmp',JSON.stringify(e),{flag:'wx'});await rename(file+'.tmp',file);
 }
 export async function allEvents(root:string):Promise<FMEvent[]> {
