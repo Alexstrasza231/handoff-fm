@@ -218,7 +218,7 @@ Honest limits, stated plainly:
   records exactly what the client delivers through the trusted hooks; it does not reconstruct chat
   history, and it does not wrap or intercept nested tool calls.
 - **No Linux or macOS desktop validation is claimed.** Windows is the only platform exercised
-  end-to-end. A Linux CLI/browser CI is intended to run fixture-driven tests; Linux Codex and DSH
+  end-to-end. Windows/Linux CLI/browser CI run fixture-driven tests; Linux Codex and DSH
   desktop runs remain untested.
 - **No registry publication claim.** v0.1.0 targets the GitHub release artifact; there is no npm
   registry availability, and no adoption, popularity, or uniqueness claim.

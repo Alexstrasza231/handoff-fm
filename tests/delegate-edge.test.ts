@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, writeFile, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { collect, dir, initProject, readRun } from '../src/store';
@@ -136,6 +136,35 @@ const verifiedTerminal = (reason: unknown = { kind: 'completed' }): Step[] => [
 
 const patchCommand = (to: string) =>
   `*** Begin Patch\n*** Update File: card.txt\n@@\n-export const label="before";\n+export const label="${to}";\n*** End Patch`;
+
+for(const unavailable of ['pending','objects'])test(`unavailable ${unavailable} storage never blocks a successful delegate`, async()=>{
+ const root=await tmp();
+ const {task}=await setup(root,{steps:[{type:'write',file:'card.txt',content:'edited'},...verifiedTerminal()]});
+ // Replace only this fixture's metadata directory with a regular file.
+ await rename(join(dir(root),unavailable),join(dir(root),unavailable+'-backup'));
+ await writeFile(join(dir(root),unavailable),'unavailable');
+ assert.equal(await delegate(root,{taskFile:task,title:'storage failure',parentSession:'run-storage'}),0);
+ assert.equal(await readFile(join(root,'card.txt'),'utf8'),'edited');
+ await collect(root);const rows=await readRun(root,'run-storage');
+ assert.ok(rows.some(e=>e.kind==='recording.gap'));
+ assert.equal(rows.find(e=>e.kind==='delegate.completed')?.data.recordingIncomplete,true);
+});
+
+test('metadata recovery cannot attribute a delegate edit to an older Codex window', async()=>{
+ const root=await tmp();const {task}=await setup(root,{steps:[{type:'write',file:'card.txt',content:'delegate edit'},...verifiedTerminal()]});
+ await writeFile(join(root,'card.txt'),'before');
+ const hook={session_id:'run-outage',turn_id:'turn',cwd:root,tool_name:'apply_patch',tool_use_id:'older',tool_input:{command:patchCommand('delegate edit')}};
+ await captureHook(root,{...hook,hook_event_name:'PreToolUse'});
+ await rename(join(dir(root),'pending'),join(dir(root),'pending-backup'));
+ await writeFile(join(dir(root),'pending'),'unavailable');
+ assert.equal(await delegate(root,{taskFile:task,title:'outage',parentSession:'run-outage'}),0);
+ await rename(join(dir(root),'pending'),join(dir(root),'pending-blocker'));
+ await rename(join(dir(root),'pending-backup'),join(dir(root),'pending'));
+ await captureHook(root,{...hook,hook_event_name:'PostToolUse',tool_response:{exit_code:0}});
+ await collect(root);const rows=await readRun(root,'run-outage');
+ const edits=rows.filter(e=>e.kind==='file.changed'&&e.actor==='codex'&&e.data.path==='card.txt');
+ assert.ok(edits.length);assert.ok(edits.every(e=>e.evidence==='unknown'));
+});
 
 test('a terminal status carrying {kind:"completed"} is the verified success path', { timeout: 120_000 }, async () => {
   const { code, rows } = await runScene({ steps: verifiedTerminal(), exitCode: 0 });

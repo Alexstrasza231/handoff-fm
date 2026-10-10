@@ -1,5 +1,7 @@
 # HandoffFM
 
+[![CI](https://github.com/Alexstrasza231/handoff-fm/actions/workflows/ci.yml/badge.svg)](https://github.com/Alexstrasza231/handoff-fm/actions/workflows/ci.yml)
+
 **A local, replayable broadcast desk for Codex + DeepSeek handoffs.**
 
 HandoffFM watches one already-authorized Codex ↔ DeepSeek collaboration in one local project,
@@ -115,8 +117,8 @@ exports are self-contained: inline bundle, `default-src 'none'`, no network fetc
 - Exercised end-to-end on **Windows** with local Codex desktop and the real DSH wrapper; Windows
   Codex desktop `apply_patch` hooks have produced actual records after official CLI trust, and real
   DSH wrapper delegations are recorded.
-- **No Linux/macOS desktop validation is claimed.** A Linux CLI/browser CI is intended to exercise
-  fixture tests; Linux Codex and DSH desktop runs remain untested.
+- Windows and Linux CI exercise CLI, browser and packaged-install fixture tests.
+  **No Linux/macOS desktop validation is claimed**; Linux Codex and DSH desktop runs remain untested.
 - Desktop chat capture is not complete and nested-tool capture is not orchestrated: hooks record
   what the client actually delivers. Treat `codexHooks: observed` as "records are arriving for this
   project", not as proof of completeness.
@@ -137,6 +139,11 @@ npm run test:browser   # Playwright acceptance tests against a real loopback ser
 release tarball work without dev dependencies. Rebuild before using any locally modified source.
 
 ## Licensing and credits
+
+Related projects: [Handoff](https://github.com/open-grove/handoff) creates portable session context,
+and [AgentDiff](https://github.com/natiixnt/AgentDiff) focuses on reviewing agent-produced code changes.
+HandoffFM focuses on the local Codex + DeepSeek event stream, a character stage and selective offline
+replay. These are references, not bundled dependencies; no global-first claim is made.
 
 - **Code: MIT** (see [LICENSE](./LICENSE)).
 - **Character artwork is not MIT and is not original CC BY.** Attribution and noncommercial terms

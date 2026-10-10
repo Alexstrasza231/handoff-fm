@@ -7,6 +7,7 @@ import { snapshot,changes,hash,blob } from './snapshots';
 import { safeRelative,redact } from './privacy';
 import type { FMEvent } from './types';
 import {excludedEvidence} from './evidence';
+import {attributionEpoch} from './attribution';
 export async function captureHook(root:string,input:any):Promise<void>{
  const cfg=await loadConfig(root);const bound=cfg.boundSessions.includes(input.session_id);
  const scope=input.tool_input?.workdir||input.tool_input?.cwd||input.cwd;
@@ -25,11 +26,12 @@ export async function captureHook(root:string,input:any):Promise<void>{
    // Publish the operation marker before reading source; later siblings cannot
    // disappear from our snapshot window. Separate flags survive sibling completion.
    const excluded=await excludedEvidence(root,input.tool_input,input.cwd||root);
+   const epoch=await attributionEpoch(root);
    await writeFile(file,JSON.stringify({session,paths,tool,before:{},overlap:true,excluded}));
    const others=(await readdir(join(dir(root),'pending'))).filter(n=>n.endsWith('.json')&&n!==file.split(/[\\/]/).at(-1));
    for(const name of others){await writeFile(join(dir(root),'pending',name)+'.overlap','1');await writeFile(file+'.overlap','1');}
    const before=await snapshot(root);
-   await writeFile(file,JSON.stringify({session,before,paths,tool,overlap:others.length>0,excluded}));
+   await writeFile(file,JSON.stringify({session,before,paths,tool,overlap:others.length>0,excluded,epoch}));
    await send('tool.started',{tool,callId:call,input:excluded?'[excluded file evidence]':input.tool_input,excluded});break;
   }
   case 'PostToolUse':{
@@ -40,7 +42,8 @@ export async function captureHook(root:string,input:any):Promise<void>{
    if(pending){const after=await snapshot(root);const others=(await readdir(join(dir(root),'pending'))).filter(n=>n!==file.split(/[\\/]/).at(-1));
     for(const change of changes(pending.before,after)){
      const flagged=await readFile(file+'.overlap').then(()=>true,()=>false);
-     const exact=tool==='apply_patch'&&pending.paths.includes(change.path)&&!pending.overlap&&!flagged&&others.length===0;
+     const epoch=await attributionEpoch(root);
+     const exact=tool==='apply_patch'&&pending.paths.includes(change.path)&&!pending.overlap&&!flagged&&others.length===0&&epoch!==null&&epoch===pending.epoch;
      const beforeBlob=await blob(root,change.before),afterBlob=await blob(root,change.after);
      await send('file.changed',{...change,before:undefined,after:undefined,beforeBlob,afterBlob,callId:call,candidateActor:'codex',reason:exact?'Explicit edit tool and isolated before/after evidence':'Indirect write or overlapping operation; attribution is unknown'},exact?'observed':'unknown');
     }await unlink(file).catch(()=>{});await unlink(file+'.overlap').catch(()=>{});

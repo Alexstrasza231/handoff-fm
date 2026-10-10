@@ -1,5 +1,7 @@
 # HandoffFM 交接台
 
+[![CI](https://github.com/Alexstrasza231/handoff-fm/actions/workflows/ci.yml/badge.svg)](https://github.com/Alexstrasza231/handoff-fm/actions/workflows/ci.yml)
+
 **给 Codex + DeepSeek 交接准备的本地、可回放直播台。**
 
 HandoffFM 在单个本地项目里观察一次**你已经授权**的 Codex ↔ DeepSeek 协作，把每条记录的
@@ -104,7 +106,7 @@ exit code 0 只说明*该命令本身*通过了。
 
 - 已在 **Windows** 上端到端跑过本地 Codex 桌面端与真实 DSH 包装器；通过官方 CLI 信任后，Windows
   Codex 桌面端 `apply_patch` hooks 已产生真实记录，真实的 DSH 包装器委派也已被记录。
-- **不声称在 Linux/macOS 桌面端验证过。** 计划中的 Linux CLI/browser CI 用夹具测试；
+- Windows／Linux CI 覆盖 CLI、浏览器和安装包夹具测试。**不声称在 Linux/macOS 桌面端验证过**；
   Linux 上的 Codex 与 DSH 桌面端仍未测试。
 - 桌面聊天记录并不完整，嵌套工具捕获也没有编排：hooks 只记录客户端实际投递的内容。
   请把 `codexHooks: observed` 理解为"该项目的记录正在到达"，而不是完整性证明。
@@ -124,6 +126,10 @@ npm run test:browser   # Playwright 验收测试，对着真实回环服务运�
 如果本地改过源码，请先重新构建。
 
 ## 许可与致谢
+
+相邻项目：[Handoff](https://github.com/open-grove/handoff)生成可移交的会话上下文，
+[AgentDiff](https://github.com/natiixnt/AgentDiff)侧重代理代码修改的审阅。
+HandoffFM 聚焦本地 Codex＋DeepSeek 事件、角色舞台与选择性离线回放；二者是参考项目，并非打包依赖，不宣称全球首创。
 
 - **代码：MIT**（见 [LICENSE](./LICENSE)）。
 - **角色美术不是 MIT，也不是原创 CC BY。** 适用署名与非商用条款，以

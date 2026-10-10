@@ -188,7 +188,7 @@ DeepSeek 的 stdout 通知**不是写入前的屏障**。DSH 进程是异步写�
   `codexHooks: observed` 理解为"本项目的记录正在到达"，而不是完整性证明。
 - **桌面聊天记录并不完整，嵌套工具捕获也没有编排。** HandoffFM 只记录客户端通过已信任 hooks 实际
   投递的内容：它不重建聊天历史，也不包装或拦截嵌套工具调用。
-- **不声称在 Linux 或 macOS 桌面端验证过。** 只有 Windows 端到端实测过。计划中的 Linux CLI/browser
+- **不声称在 Linux 或 macOS 桌面端验证过。** 只有 Windows 端到端实测过。Windows/Linux CLI/browser
   CI 用夹具测试；Linux 上的 Codex 与 DSH 桌面端仍未测试。
 - **不声称已发布到注册表。** v0.1.0 面向 GitHub 发布产物；没有 npm registry 可用性，也不作任何采用度、
   热度或唯一性声明。
