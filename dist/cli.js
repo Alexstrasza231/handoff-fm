@@ -1521,7 +1521,7 @@ Review selected content for secrets. Automatic masking cannot find everything.${
     if (p[1] !== "deepseek" || !o["task-file"] || !o["parent-session"]) throw new Error("Use delegate deepseek --task-file PATH --title TITLE --parent-session ID [--parent-turn ID]");
     return delegate(root, { taskFile: resolve7(root, o["task-file"]), title: o.title || "Delegated task", parentSession: o["parent-session"], parentTurn: o["parent-turn"], sessionId: o["session-id"] });
   }
-  console.log("HandoffFM 0.1.0\ninit | doctor | watch | delegate deepseek | export\nUse --project PATH to select an enabled project.");
+  console.log("HandoffFM 0.1.1\ninit | doctor | watch | delegate deepseek | export\nUse --project PATH to select an enabled project.");
   return 0;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve7(process.argv[1])).href) run().then((code2) => {
