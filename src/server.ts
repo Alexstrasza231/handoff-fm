@@ -21,7 +21,10 @@ export async function startWatch(root:string,options:{port:number;webDir?:string
    const offered=String(req.headers.authorization||'').replace(/^Bearer /,'')||url.searchParams.get('token')||'';
    const a=Buffer.from(offered),b=Buffer.from(token);if(a.length!==b.length||!timingSafeEqual(a,b))return fail(401,'Access token required');
    const reply=(value:unknown)=>{res.writeHead(200,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(value));};
-   if(url.pathname==='/api/runs'){const rows=await allEvents(root);const runs=new Map();for(const e of rows)runs.set(e.runId,{id:e.runId,title:e.kind==='task.started'?e.data.prompt||'Recorded task':runs.get(e.runId)?.title||'Recorded collaboration',updated:e.at,count:(runs.get(e.runId)?.count||0)+1});return reply([...runs.values()].reverse());}
+   // allEvents is journal ordered, so reception order is the iteration order. Re-inserting every
+   // run on receipt moves a renewed older run to the recent end; the reverse then lists the run
+   // with the latest received activity first. Producer `at` is kept as `updated` but never orders.
+   if(url.pathname==='/api/runs'){const rows=await allEvents(root);const runs=new Map();for(const e of rows){const prior=runs.get(e.runId);runs.delete(e.runId);runs.set(e.runId,{id:e.runId,title:e.kind==='task.started'?e.data.prompt||'Recorded task':prior?.title||'Recorded collaboration',updated:e.at,count:(prior?.count||0)+1});}return reply([...runs.values()].reverse());}
    if(url.pathname==='/api/events'){const run=url.searchParams.get('run');if(run&&!safeId(run))return fail(400,'Invalid run');return reply(run?await readRun(root,run):await allEvents(root));}
    if(url.pathname==='/api/export'){
     const run=url.searchParams.get('run');if(!run||!safeId(run))return fail(400,'Invalid run');const opts={...DEFAULT_SHARE};for(const k of Object.keys(opts) as (keyof ShareOptions)[])opts[k]=url.searchParams.get(k)==='true';

@@ -15,6 +15,18 @@ export interface Loaded{
 }
 
 const TOKEN_KEY='handoff-fm-token';
+const SELECTED_RUN_KEY='handoff-fm-selected-run';
+
+/** Only explicit live choices survive a tab refresh. Removed runs fall back to the service order. */
+export function initialLiveRun(runs:RunRow[]):string{
+ let saved='';
+ try{saved=sessionStorage.getItem(SELECTED_RUN_KEY)||'';}catch{/* Storage may be disabled. */}
+ return runs.some(run=>run.id===saved)?saved:runs[0]?.id||'';
+}
+
+export function rememberLiveRun(run:string):void{
+ try{sessionStorage.setItem(SELECTED_RUN_KEY,run);}catch{/* Selection still works without storage. */}
+}
 
 /** Read the token from the URL fragment, keep it for reloads, then erase it from the address bar. */
 export function captureToken():string{

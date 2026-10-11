@@ -2,7 +2,7 @@ import {useCallback,useEffect,useMemo,useRef,useState,type KeyboardEvent as Reac
 import type {FMEvent,ShareOptions} from '../src/types';
 import {DEFAULT_SHARE} from '../src/types';
 import {DeskPanel,EvidencePanel,Timeline} from './components';
-import {ApiError,appendEvent,captureToken,createLiveApi,EventStream,offlinePayload,runsFrom,sideText,type Connection,type LiveApi,type Loaded,type RunRow,type Source} from './data';
+import {ApiError,appendEvent,captureToken,createLiveApi,EventStream,initialLiveRun,rememberLiveRun,offlinePayload,runsFrom,sideText,type Connection,type LiveApi,type Loaded,type RunRow,type Source} from './data';
 import {demoEvents} from './demo';
 import {ACTOR_LABEL,clockTime,deriveActors,eventSummary,KIND_LABEL} from './helpers';
 import {cleanTaskTitle,latestHandoffIndex,recentActivities,taskTitle} from './presentation';
@@ -128,7 +128,7 @@ export default function App(){
     const rows=await api.runs();
     if(cancelled)return;
     setRuns(rows);
-    const target=rows[0]?.id??'';
+    const target=initialLiveRun(rows);
     setRunId(target);
     loadedRun.current=target;
     setAuth('ok');
@@ -288,7 +288,7 @@ export default function App(){
     {!localMode?<button type="button" className="ghost" onClick={enterDemo}>{SAMPLE}</button>:null}
     <label className="run-picker">
      <span>运行</span>
-     <select value={runId} onChange={event=>{setMode('live');setReplayPick(null);setRunId(event.target.value);}} aria-label="选择运行记录">
+     <select value={runId} onChange={event=>{if(!localMode)rememberLiveRun(event.target.value);setMode('live');setReplayPick(null);setRunId(event.target.value);}} aria-label="选择运行记录">
       {shownRuns.length===0?<option value="">等待记录</option>:null}
       {shownRuns.map(row=><option key={row.id} value={row.id}>{cleanTaskTitle(row.title)||'记录中的协作'}（{row.count}）</option>)}
      </select>

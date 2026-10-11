@@ -2,11 +2,26 @@
 
 [![CI](https://github.com/Alexstrasza231/handoff-fm/actions/workflows/ci.yml/badge.svg)](https://github.com/Alexstrasza231/handoff-fm/actions/workflows/ci.yml)
 
-**A local, replayable broadcast desk for Codex + DeepSeek handoffs.**
+**See which AI ran which tool, what changed, and what still needs checking.**
 
-HandoffFM watches one already-authorized Codex ↔ DeepSeek collaboration in one local project,
-keeps every record's evidence label attached, replays it as a whale-and-dragon stage, and exports
-an offline, read-only copy of the parts you explicitly choose.
+HandoffFM turns a local Codex ↔ DeepSeek collaboration into a whale-and-dragon stage. Open the
+handoff, inspect recorded changes, and replay the work without running it again. Records stay local;
+you choose what to include in an offline share.
+
+### A real problem, fixed by the two agents
+
+**“I refreshed, and my active collaboration disappeared.”** DeepSeek fixed backend run ordering;
+Codex added tab-local selection retention and checked both changes. The case includes the root
+cause, the failing regressions, and commands to verify it yourself.
+
+[Read the real debugging case](./docs/cases/refresh-selection.md) · [中文案例](./docs/cases/refresh-selection.zh-CN.md) · [Reviewed, content-free event sequence](./docs/cases/refresh-events.json)
+
+<a href="docs/cases/refresh-selection.md"><img src="docs/media/refresh-case.png" alt="Actual refresh-fix collaboration, shown in the compact viewer using an anonymized offline projection" width="880"></a>
+
+This screenshot uses actual records from that delegation, with prompts, paths, differences and
+outputs excluded and identities aliased. It is a real offline projection, not the sample scenario.
+
+<details><summary>Earlier real component-edit recording (v0.1.0 interface)</summary>
 
 <a href="docs/media/real-handoff.webm"><img src="docs/media/real-desk.png" alt="Real Windows collaboration replay: Codex white dragon, DeepSeek whale maid and recorded component diff" width="880"></a>
 
@@ -15,6 +30,8 @@ an offline, read-only copy of the parts you explicitly choose.
 The recording follows a real Codex → DeepSeek → Codex component edit. Replay selection skips
 waiting time; timestamps and evidence labels are preserved. Both file changes remain `unknown`
 attribution, and the corrected verification result is an agent declaration. [Recording details](./docs/media/README.md).
+
+</details>
 
 [中文说明](./README.zh-CN.md) · [Usage](./docs/usage.md) · [Evidence model](./docs/evidence.md)
 
@@ -34,7 +51,7 @@ its stage captions are Chinese.
 
 ```sh
 # 1. install the CLI (self-contained bundle, no build step)
-npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.0/handoff-fm-0.1.0.tgz
+npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.1/handoff-fm-0.1.1.tgz
 
 # 2. enable one project, then check the environment
 cd /path/to/your/project
@@ -122,7 +139,7 @@ exports are self-contained: inline bundle, `default-src 'none'`, no network fetc
 - Desktop chat capture is not complete and nested-tool capture is not orchestrated: hooks record
   what the client actually delivers. Treat `codexHooks: observed` as "records are arriving for this
   project", not as proof of completeness.
-- Not yet published to a package registry: the commands above target the GitHub **v0.1.0** release
+- Not yet published to a package registry: the commands above target the GitHub **v0.1.1** release
   artifact. There is no npm registry install path.
 
 ## Development

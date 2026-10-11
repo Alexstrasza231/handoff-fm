@@ -1332,7 +1332,11 @@ async function startWatch(root, options) {
         if (url.pathname === "/api/runs") {
           const rows = await allEvents(root);
           const runs = /* @__PURE__ */ new Map();
-          for (const e of rows) runs.set(e.runId, { id: e.runId, title: e.kind === "task.started" ? e.data.prompt || "Recorded task" : runs.get(e.runId)?.title || "Recorded collaboration", updated: e.at, count: (runs.get(e.runId)?.count || 0) + 1 });
+          for (const e of rows) {
+            const prior = runs.get(e.runId);
+            runs.delete(e.runId);
+            runs.set(e.runId, { id: e.runId, title: e.kind === "task.started" ? e.data.prompt || "Recorded task" : prior?.title || "Recorded collaboration", updated: e.at, count: (prior?.count || 0) + 1 });
+          }
           return reply([...runs.values()].reverse());
         }
         if (url.pathname === "/api/events") {

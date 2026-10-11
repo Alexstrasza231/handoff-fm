@@ -2,14 +2,30 @@
 
 [![CI](https://github.com/Alexstrasza231/handoff-fm/actions/workflows/ci.yml/badge.svg)](https://github.com/Alexstrasza231/handoff-fm/actions/workflows/ci.yml)
 
-**给 Codex + DeepSeek 交接准备的本地、可回放直播台。**
+**看清哪位 AI 调了什么工具、代码怎么变、结果还要检查什么。**
 
-HandoffFM 在单个本地项目里观察一次**你已经授权**的 Codex ↔ DeepSeek 协作，把每条记录的
-证据等级原样保留，用白龙与蓝鲸的舞台形式回放，并只把你显式选中的内容导出成离线只读副本。
+把本地 Codex ↔ DeepSeek 协作变成白龙与蓝鲸的交接台：打开交接证据，核对记录到的修改，
+回放过程而无需重新执行。记录留在本机，分享时自己选择内容。
+
+### 一个真实问题，两边一起修
+
+**“刷新一下，正在干活的 AI 怎么没了？”** DeepSeek 修后台任务排序，Codex 补上刷新后保留选择，
+再独立验证两处改动。案例包含原因、修复前失败的回归测试，以及可以自己复跑的命令。
+
+[看真实排错案例](./docs/cases/refresh-selection.zh-CN.md) · [查看去掉内容后的真实事件顺序](./docs/cases/refresh-events.json)
+
+<a href="docs/cases/refresh-selection.zh-CN.md"><img src="docs/media/refresh-case.png" alt="真实刷新修复协作：简洁界面展示匿名化的离线记录" width="880"></a>
+
+上图来自这次委派的真实记录，已排除提示词、路径、差异和输出，并将实例改为别名。
+这是实际记录的离线投影，不是内置示例剧情。
+
+<details><summary>此前的真实组件修改录屏（v0.1.0 界面）</summary>
 
 <a href="docs/media/real-handoff.webm"><img src="docs/media/real-desk.png" alt="真实 Windows 协作回放：白龙、鲸鱼女仆与组件代码差异" width="880"></a>
 
 [观看真实录屏](./docs/media/real-handoff.webm) · [查看对应事件与代码差异](./docs/media/real-events.json)
+
+</details>
 
 [English](./README.md) · [使用指南](./docs/usage.zh-CN.md) · [证据模型](./docs/evidence.zh-CN.md)
 
@@ -26,7 +42,7 @@ HandoffFM 在单个本地项目里观察一次**你已经授权**的 Codex ↔ D
 
 ```sh
 # 1. 安装 CLI（自包含发布包，无需构建）
-npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.0/handoff-fm-0.1.0.tgz
+npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.1/handoff-fm-0.1.1.tgz
 
 # 2. 启用一个项目并检查环境
 cd /path/to/your/project
@@ -110,7 +126,7 @@ exit code 0 只说明*该命令本身*通过了。
   Linux 上的 Codex 与 DSH 桌面端仍未测试。
 - 桌面聊天记录并不完整，嵌套工具捕获也没有编排：hooks 只记录客户端实际投递的内容。
   请把 `codexHooks: observed` 理解为"该项目的记录正在到达"，而不是完整性证明。
-- 尚未发布到任何包注册表：上面的命令面向 GitHub **v0.1.0** 发布产物，没有 npm registry 安装路径。
+- 尚未发布到任何包注册表：上面的命令面向 GitHub **v0.1.1** 发布产物，没有 npm registry 安装路径。
 
 ## 开发
 

@@ -20,7 +20,7 @@ HandoffFM 只负责观察。
 不需要构建，也不需要开发依赖：
 
 ```sh
-npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.0/handoff-fm-0.1.0.tgz
+npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.1/handoff-fm-0.1.1.tgz
 handoff-fm doctor
 ```
 
@@ -48,7 +48,7 @@ node dist/cli.js doctor
 - 离线导出与 watch 查看器都依赖 Web 构建产物（`web-dist/`）。如果缺少 `web-dist/`，
   `watch` 打开页面会返回 `Resource unavailable`，`export` 会因读取 `web-dist/index.html`
   失败而报错；请先执行 `npm run build`。
-- v0.1.0 是 GitHub 发布产物，**没有**发布到任何包注册表，因此 `npm install handoff-fm` 或
+- v0.1.1 是 GitHub 发布产物，**没有**发布到任何包注册表，因此 `npm install handoff-fm` 或
   `npx handoff-fm` 都不会解析到它。
 - 下文用 `handoff-fm <命令>` 表示全局安装；在仓库里请替换为 `node dist/cli.js <命令>`。
 
@@ -183,7 +183,7 @@ node dist/cli.js doctor --project ~/my-app
 - **重播最近交接**：从最近一次派活开始播放；“回到现场”恢复实时视图。回放控制里可调整速度、逐条移动或跳到交接／失败。
 - **更多**：选择运行、试玩示例、分享预览、字幕和减少动效。全部记录及完整实例信息默认收起。
 
-舞台字幕是固定趣味台词，真实原话与命令结果在操作详情中。此改版在当前源码／本地构建中；已发布的 v0.1.0 安装包仍使用发布时的界面。
+舞台字幕是固定趣味台词，真实原话与命令结果在操作详情中。简洁舞台与刷新后保留任务选择的修复随 v0.1.1 发布。
 
 ```powershell
 node dist/cli.js watch --project C:\work\my-app

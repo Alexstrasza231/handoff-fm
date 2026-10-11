@@ -4,7 +4,8 @@ import {join,resolve,dirname} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 // Exercise the actual packed files, with no development dependencies available.
-const packagePath=resolve(process.argv[2]||'handoff-fm-0.1.0.tgz');
+const expectedVersion=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8')).version;
+const packagePath=resolve(process.argv[2]||`handoff-fm-${expectedVersion}.tgz`);
 const temp=await mkdtemp(join(tmpdir(),'hfm-install-'));
 function run(command,args,options={}){const result=spawnSync(command,args,{encoding:'utf8',windowsHide:true,...options});assert.equal(result.status,0,result.stderr||result.stdout);return result.stdout;}
 try{
@@ -12,7 +13,7 @@ try{
  if(process.platform==='win32')run(process.execPath,[join(dirname(process.execPath),'node_modules','npm','bin','npm-cli.js'),...args]);
  else run('npm',args);
  const installed=join(temp,'node_modules','handoff-fm'),cli=join(installed,'dist','cli.js');
- const metadata=JSON.parse(await readFile(join(installed,'package.json'),'utf8'));assert.equal(metadata.version,'0.1.0');
+ const metadata=JSON.parse(await readFile(join(installed,'package.json'),'utf8'));assert.equal(metadata.version,expectedVersion);
  const project=join(temp,'project');await mkdir(project);const env={...process.env,HANDOFF_FM_HOME:join(temp,'registry')};
  const output=run(process.execPath,[cli,'init','--project',project],{env});assert.match(output,/Enabled/);
  run(process.execPath,[cli,'init','--project',project],{env});
