@@ -8,14 +8,17 @@ import { snapshot,changes,blob,hash } from './snapshots';
 import {commandSpec} from './process';
 import {excludedEvidence} from './evidence';
 import {rotateAttributionEpoch} from './attribution';
+import {deepseekUsage,resolveParentTask} from './usage';
+import {allEvents,collect} from './store';
 export interface DSContext {runId:string;sessionId:string;taskId:string;parentTaskId?:string;}
 export function completionReason(v:unknown):string{
  return typeof v==='string'?v:v&&typeof v==='object'&&'kind' in v?String(v.kind):'unknown';
 }
 export function normalizeDSH(v:any,c:DSContext):FMEvent[]{
- if(!v||['thinking','text','status'].includes(v.type))return [];
+ if(!v||['thinking','text'].includes(v.type))return [];
  const truncated=!!v.truncated||JSON.stringify(v.input??v.result??'').length>65536;
  const base={version:1 as const,id:randomUUID(),...c,actor:'deepseek' as const,at:new Date().toISOString(),evidence:truncated?'unknown' as const:'observed' as const};
+ if(v.type==='status')return v.phase==='step_end'&&Number.isSafeInteger(v.turn)&&Number.isSafeInteger(v.step)?[{...base,kind:'usage.recorded',data:{...deepseekUsage(v.usage,`${c.taskId}:turn-${v.turn}:step-${v.step}`)}}]:[];
  if(v.type==='session')return [{...base,sessionId:v.sessionId||c.sessionId,kind:'session.started',data:{}}];
  if(v.type==='tool_call')return [{...base,kind:'tool.started',data:{tool:v.tool,callId:v.callId,input:v.input,truncated}}];
  if(v.type==='tool_result')return [{...base,kind:'tool.completed',data:{callId:v.callId,status:v.status,output:v.result,truncated}}];
@@ -27,7 +30,9 @@ export async function delegate(root:string,options:{taskFile:string;title:string
  const cfg=await loadConfig(root),task=await readFile(options.taskFile,'utf8');if(!task.trim()||task.length>128*1024)throw new Error('Task must be non-empty and <=128 KiB');
  if(options.sessionId&&!safeId(options.sessionId))throw new Error('Invalid DeepSeek session ID');
  const runId=safeId(options.parentSession)?options.parentSession:hash(options.parentSession).slice(0,32),taskId='task-'+randomUUID();
- const c:DSContext={runId,sessionId:'pending-'+taskId,taskId,parentTaskId:options.parentTurn};
+ let parentTaskId=options.parentTurn;
+ if(!parentTaskId)try{await collect(root);parentTaskId=resolveParentTask(await allEvents(root),options.parentSession);}catch{/* Recording failure leaves the delegate unassociated, never prevents its execution. */}
+ const c:DSContext={runId,sessionId:'pending-'+taskId,taskId,parentTaskId};
  let invalid=false;
  const send=async(e:FMEvent)=>{try{await enqueue(root,e);}catch{invalid=true;process.stderr.write('HandoffFM: recording gap; the delegate continues.\n');}};
  const emit=async(kind:FMEvent['kind'],data:Record<string,unknown>,actor:FMEvent['actor']='deepseek',evidence:FMEvent['evidence']='observed')=>send({version:1,id:randomUUID(),...c,sessionId:actor==='codex'?options.parentSession:c.sessionId,actor,kind,at:new Date().toISOString(),evidence,data});

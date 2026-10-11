@@ -1,6 +1,6 @@
 {
   "name": "handoff-fm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "license": "MIT",
   "description": "Watch Codex and DeepSeek hand work over, with replayable evidence and cute stage captions.",

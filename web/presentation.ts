@@ -9,6 +9,8 @@ export function cleanTaskTitle(prompt:string):string{
  title=title.replace(/<in-app-browser-context\b[^>]*>[\s\S]*?<\/in-app-browser-context>/g,'');
  const request=title.match(/## My request:\s*([\s\S]*)/);
  if(request)title=request[1];
+ title=title.replace(/^PLEASE IMPLEMENT THIS PLAN:\s*/i,'');
+ const heading=title.match(/^#\s+([^\r\n]+)/);if(heading)title=heading[1];
  return title.replace(/\s+/g,' ').trim().slice(0,100);
 }
 export function taskTitle(events:FMEvent[],fallback='等待记录'):string{
@@ -26,7 +28,7 @@ export function recentActivities(events:FMEvent[],limit=6):{event:FMEvent;index:
  const rows:{event:FMEvent;index:number}[]=[];
  for(let index=events.length-1;index>=0;index--){
   const event=events[index];
-  if(event.kind==='session.started'||event.kind==='turn.completed')continue;
+  if(event.kind==='session.started'||event.kind==='turn.completed'||event.kind==='usage.recorded')continue;
   if(event.kind==='tool.completed'&&!isCommandTool(eventTool(event))&&event.data.status!=='failed')continue;
   rows.push({event,index});
  }

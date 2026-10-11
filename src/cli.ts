@@ -40,7 +40,7 @@ export async function run(argv=process.argv.slice(2)){
   const stop=()=>server.close().then(()=>process.exit(0));process.once('SIGINT',stop);process.once('SIGTERM',stop);return 0;
  }
  if(command==='export'){
-  if(!p[1]||!o.output)throw new Error('Use export RUN --output PATH [--prompts --paths --diffs --outputs] [--confirm]');await collect(root);
+  if(!p[1]||!o.output)throw new Error('Use export RUN --output PATH [--prompts --paths --diffs --outputs --usage] [--confirm]');await collect(root);
   const selection={...DEFAULT_SHARE};for(const key of Object.keys(selection) as (keyof ShareOptions)[])selection[key]=o[key]==='true';
   const events=await readRun(root,p[1]);if(!events.length)throw new Error('Run has no recorded events');
   const output=resolve(o.output),preview=o.confirm==='true'?output:output+'.preview.html';
@@ -51,6 +51,6 @@ export async function run(argv=process.argv.slice(2)){
   if(p[1]!=='deepseek'||!o['task-file']||!o['parent-session'])throw new Error('Use delegate deepseek --task-file PATH --title TITLE --parent-session ID [--parent-turn ID]');
   return delegate(root,{taskFile:resolve(root,o['task-file']),title:o.title||'Delegated task',parentSession:o['parent-session'],parentTurn:o['parent-turn'],sessionId:o['session-id']});
  }
- console.log('HandoffFM 0.1.1\ninit | doctor | watch | delegate deepseek | export\nUse --project PATH to select an enabled project.');return 0;
+ console.log('HandoffFM 0.1.2\ninit | doctor | watch | delegate deepseek | export\nUse --project PATH to select an enabled project.');return 0;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)run().then(code=>{process.exitCode=code;}).catch(e=>{console.error(e.message);process.exitCode=1;});

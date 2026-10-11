@@ -38,7 +38,7 @@ export function ShareModal({events,options,onToggle,onClose,onConfirm,disabled,d
    </p>
    <fieldset className="share-options">
     <legend>可选项</legend>
-    {([['prompts','任务提示文本'],['paths','文件路径'],['diffs','代码差异'],['outputs','命令输出']] as [keyof ShareOptions,string][]).map(([key,label])=>
+    {([['prompts','任务提示文本'],['paths','文件路径'],['diffs','代码差异'],['outputs','命令输出'],['usage','用量数据']] as [keyof ShareOptions,string][]).map(([key,label])=>
      <label key={key} className="check">
       <input type="checkbox" checked={options[key]} onChange={()=>onToggle(key)} disabled={disabled}/>
       <span>{label}</span>

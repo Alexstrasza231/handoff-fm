@@ -137,7 +137,7 @@ const verifiedTerminal = (reason: unknown = { kind: 'completed' }): Step[] => [
 const patchCommand = (to: string) =>
   `*** Begin Patch\n*** Update File: card.txt\n@@\n-export const label="before";\n+export const label="${to}";\n*** End Patch`;
 
-for(const unavailable of ['pending','objects'])test(`unavailable ${unavailable} storage never blocks a successful delegate`, async()=>{
+for(const unavailable of ['pending','objects','inbox'])test(`unavailable ${unavailable} storage never blocks a successful delegate`, async()=>{
  const root=await tmp();
  const {task}=await setup(root,{steps:[{type:'write',file:'card.txt',content:'edited'},...verifiedTerminal()]});
  // Replace only this fixture's metadata directory with a regular file.
@@ -145,6 +145,7 @@ for(const unavailable of ['pending','objects'])test(`unavailable ${unavailable} 
  await writeFile(join(dir(root),unavailable),'unavailable');
  assert.equal(await delegate(root,{taskFile:task,title:'storage failure',parentSession:'run-storage'}),0);
  assert.equal(await readFile(join(root,'card.txt'),'utf8'),'edited');
+ if(unavailable==='inbox')return; // Task still ran despite complete inability to persist/infer.
  await collect(root);const rows=await readRun(root,'run-storage');
  assert.ok(rows.some(e=>e.kind==='recording.gap'));
  assert.equal(rows.find(e=>e.kind==='delegate.completed')?.data.recordingIncomplete,true);

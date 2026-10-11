@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {collect,allEvents,readRun,safeId} from './store';
 import {offlineHTML} from './export';
 import {DEFAULT_SHARE,type ShareOptions} from './types';
+import {pollCodexUsage} from './codex-usage';
 export const webDirectory=resolve(fileURLToPath(new URL('../web-dist',import.meta.url)));
 export async function startWatch(root:string,options:{port:number;webDir?:string}){
  const token=randomBytes(32).toString('hex');const streams=new Set<ServerResponse>();let ticking=false;
@@ -43,8 +44,8 @@ export async function startWatch(root:string,options:{port:number;webDir?:string
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
   res.writeHead(200,{'Content-Type':types[extname(target)]||'application/octet-stream'});res.end(await readFile(target));
  }catch(e){res.writeHead((e as NodeJS.ErrnoException).code==='ENOENT'?404:500);res.end('Resource unavailable');}});
- await collect(root);
+ await pollCodexUsage(root);await collect(root);
  await new Promise<void>((done,reject)=>{server.once('error',reject);server.listen(options.port,'127.0.0.1',()=>{server.removeListener('error',reject);done();});}).catch(e=>{if((e as NodeJS.ErrnoException).code==='EADDRINUSE')throw new Error(`Port ${options.port} is in use. Choose --port NUMBER.`);throw e;});
- const timer=setInterval(async()=>{if(ticking)return;ticking=true;try{await collect(root);const events=streams.size?await allEvents(root):[];for(const res of streams){for(const e of events)if((e.seq||0)>(res as any).lastSeq){if(res.writableLength>1024*1024){res.destroy();break;}res.write(`id: ${e.seq}\ndata: ${JSON.stringify(e)}\n\n`);(res as any).lastSeq=e.seq;}res.write(': heartbeat\n\n');}}catch{for(const res of streams)res.destroy();streams.clear();}finally{ticking=false;}},300);
+ const timer=setInterval(async()=>{if(ticking)return;ticking=true;try{await pollCodexUsage(root);await collect(root);const events=streams.size?await allEvents(root):[];for(const res of streams){for(const e of events)if((e.seq||0)>(res as any).lastSeq){if(res.writableLength>1024*1024){res.destroy();break;}res.write(`id: ${e.seq}\ndata: ${JSON.stringify(e)}\n\n`);(res as any).lastSeq=e.seq;}res.write(': heartbeat\n\n');}}catch{for(const res of streams)res.destroy();streams.clear();}finally{ticking=false;}},300);
  return {port:(server.address() as {port:number}).port,token,close:async()=>{clearInterval(timer);for(const s of streams)s.end();server.closeAllConnections();await new Promise<void>(done=>server.close(()=>done()));}};
 }

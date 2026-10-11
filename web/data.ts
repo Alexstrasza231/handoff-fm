@@ -112,7 +112,7 @@ export function createLiveApi(token:string){
   streamUrl:(since:number)=>`/api/stream?since=${since}&token=${encodeURIComponent(token)}`,
   exportUrl:(run:string,options:Record<string,boolean>)=>{
    const params=new URLSearchParams({run});
-   for(const key of ['prompts','paths','diffs','outputs'])params.set(key,options[key]?'true':'false');
+   for(const key of ['prompts','paths','diffs','outputs','usage'])params.set(key,options[key]?'true':'false');
    return `/api/export?${params.toString()}`;
   },
   download:async(url:string):Promise<Blob>=>{

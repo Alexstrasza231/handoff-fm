@@ -10,14 +10,14 @@ test('compact landing makes each participant action clear and opens a diff with 
  await page.goto(watcher.url);
  await expect(page.locator('.task-line')).toContainText('改善交接卡片');
  await expect(page.locator('.task-line')).not.toContainText('metadata');
- await expect(page.getByRole('button',{name:'查看最近修改',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'查看详情',exact:true})).toBeVisible();
  await expect(page.getByRole('region',{name:'证据面板'})).not.toBeVisible();
  await expect(page.getByRole('button',{name:'上一条',exact:true})).not.toBeVisible();
- const recent=page.getByRole('region',{name:'最近活动'});
- await expect(recent).toContainText('Codex');
- await expect(recent).toContainText('DeepSeek');
- await expect(recent).toContainText('归属未知');
- await page.getByRole('button',{name:'查看最近修改',exact:true}).click();
+ await expect(page.locator('.actor-codex')).toContainText('Codex');
+ await expect(page.locator('.actor-codex')).toContainText('该命令通过');
+ await expect(page.locator('.actor-deepseek')).toContainText('具体作者未确定');
+ await page.getByRole('button',{name:'查看详情',exact:true}).click();
+ await page.locator('.timeline-row').filter({hasText:'文件变化'}).getByRole('button').click();
  await expect(page.locator('.evidence .diff')).toContainText('+new');
  await expect(page.locator('.evidence')).toContainText('归属未知');
 });
@@ -31,8 +31,9 @@ test('latest handoff replay starts at the latest dispatch and characters stay si
  ]);
  await page.setViewportSize({width:780,height:900});
  await page.goto(watcher.url);
- await page.getByRole('button',{name:'重播最近交接',exact:true}).click();
- await expect(page.getByRole('button',{name:'暂停',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'回放过程',exact:true}).click();
+ await page.getByRole('button',{name:'查看详情',exact:true}).click();
+ await page.locator('.timeline-row').filter({hasText:'新的交接'}).getByRole('button').click();
  const position=Number(await page.getByRole('slider',{name:'回放时间位置'}).inputValue());
  expect(position).toBeGreaterThanOrEqual(1000000);
  expect(position).toBeLessThan(1005000);
@@ -50,7 +51,7 @@ test('latest handoff replay starts at the latest dispatch and characters stay si
 test('a dispatch with no subsequent record is located and labelled rather than pretending to play',async({page,watcher})=>{
  await watcher.seed([makeEvent({id:'pending-1',kind:'delegate.started',actor:'codex',offsetSeconds:0})]);
  await page.goto(watcher.url);
- await page.getByRole('button',{name:'重播最近交接',exact:true}).click();
+ await page.getByRole('button',{name:'回放过程',exact:true}).click();
  await expect(page.getByText('这次派活后暂无后续记录，已定位到派活。',{exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'暂停',exact:true})).not.toBeVisible();
 });

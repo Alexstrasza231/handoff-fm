@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState,type RefObject} from 'react';
 import type {FMEvent} from '../src/types';
-import {ACTOR_LABEL,baseName,clockTime,eventSummary,KIND_LABEL,stageLine,type ActorState,type ActorView,type Character,type Pose,POSE_LABEL,toolExitText} from './helpers';
+import {ACTOR_LABEL,baseName,clockTime,eventSummary,eventTool,poseForTool,KIND_LABEL,stageLine,toolCompletionLabel,toolExitText,type ActorState,type ActorView,type Character,type Pose,POSE_LABEL} from './helpers';
 import type {Mode} from './replay';
 
 /* ------------------------------------------------------------- character art */
@@ -34,75 +34,61 @@ export function CharacterView({character,pose,name,assets,muted}:{
  </div>;
 }
 
+/* ---------------------------------------------------------------- summaries */
+
+export function isUsageEvent(event:FMEvent|null|undefined):boolean{
+ return !!event&&event.kind==='usage.recorded';
+}
+
+/**
+ * 首页卡片上的一句话。只描述已记录的观测事实；命令是否成功以退出码为准，
+ * 交稿只说“已交稿，等待检查”，绝不写成验收通过。技术细节留给详情面板。
+ */
+export function latestActionText(event:FMEvent|null|undefined):string{
+ if(!event)return '还没有记录到动作';
+ if(event.kind==='usage.recorded')return '记录了用量采样';
+ if(event.kind==='tool.completed'&&toolCompletionLabel(event)==='命令退出码 0')return '该命令通过';
+ if(event.kind==='delegate.completed'&&event.actor==='deepseek')return '已交稿，等待检查';
+ if(event.kind==='tool.started'){
+  const pose=poseForTool(eventTool(event));const input=event.data.input as Record<string,unknown>|undefined;
+  const target=typeof input?.path==='string'?input.path:typeof input?.file_path==='string'?input.file_path:undefined;
+  return pose==='read'?`正在读取${target?` ${baseName(target)}`:'文件或资料'}`:pose==='edit'?'正在使用编辑工具':'正在运行工具';
+ }
+ if(event.kind==='tool.completed')return event.data.status==='failed'||typeof event.data.exitCode==='number'&&event.data.exitCode!==0?'工具报错，待检查':'工具已结束，结果待检查';
+ if(event.kind==='file.changed')return event.evidence==='observed'?`刚修改了 ${baseName(String(event.data.path||'文件'))}`:'发现文件变化，具体作者未确定';
+ const lines:Partial<Record<FMEvent['kind'],string>>={'task.started':'接到新任务','session.started':'记录连接已建立','delegate.started':'已派活，等待交稿','agent.message':'提交了说明，待核对','delegate.failed':'这次任务失败，待检查','turn.completed':'这一轮已结束','turn.interrupted':'这一轮被中断','recording.gap':'记录不完整'};
+ return lines[event.kind]||'等待记录';
+}
+
 /* --------------------------------------------------------------------- desk */
 
-function humanTime(at:string|null):string{
- if(!at)return '无记录';
- const ms=Date.parse(at);
- if(!Number.isFinite(ms))return '时间未知';
- const date=new Date(ms);
- return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}`;
-}
-function ago(ms:number):string|null{
- if(!Number.isFinite(ms)||ms<1000)return null;
- const seconds=Math.floor(ms/1000);
- if(seconds<60)return `${seconds} 秒前`;
- const minutes=Math.floor(seconds/60);
- if(minutes<60)return `${minutes} 分钟前`;
- return `${Math.floor(minutes/60)} 小时前`;
-}
-
-/** 实例 ID 很长：卡片上只显示缩短形式，完整 ID 始终保留在 title 里。 */
+/** 实例 ID 很长：完整 ID 只在详情面板里出现。 */
 function shortSession(id:string):string{
  const value=id.trim();
  if(value.length<=14)return value;
  return `${value.slice(0,7)}…${value.slice(-4)}`;
 }
 
-function ActorCard({view,character,label,assets,mode,now}:{
- view:ActorView;character:Character;label:string;assets?:Record<string,string>;mode:Mode;now:number;
+export function ActorCard({view,character,label,latest,assets,onOpen}:{
+ view:ActorView;character:'codex'|'deepseek';label:string;latest:FMEvent|null;assets?:Record<string,string>;onOpen:()=>void;
 }){
- const stale=view.at?ago(now-Date.parse(view.at)):null;
- const latest=view.sessions.length?view.sessions[view.sessions.length-1]:null;
- const latestLabel=latest?shortSession(latest):'尚未记录到实例';
- const earlier=view.sessions.slice(0,-1);
+ const latestId=view.sessions.length?view.sessions[view.sessions.length-1]:null;
+ const sentence=latestActionText(latest);
  return <section className={`actor-card actor-${character}${view.lastActionPose?' has-action':''}`} aria-label={`${label} 状态卡`}>
-  <header className="actor-head">
-   <div className="actor-id">
-    <h3>{label}</h3>
-    <p className="actor-session" title={latest??view.sessionLabel}>实例 <span className="actor-session-id">{latestLabel}</span></p>
-   </div>
-   <span className="pose-chip">当前姿态：{POSE_LABEL[view.pose]}</span>
-  </header>
-  <CharacterView character={character} pose={view.pose} name={label} assets={assets} muted={!view.lastActionPose}/>
-  <p className="actor-facts">
-   <span className="fact"><b>状态</b>{view.status}</span>
-   <span className="fact"><b>模型</b>{view.model}</span>
-  </p>
-  <details className="actor-more">
-   <summary>实例信息</summary>
-   <dl className="actor-meta">
-    <div><dt>当前状态</dt><dd>{view.status}</dd></div>
-    <div><dt>模型</dt><dd>{view.model}</dd></div>
-    <div><dt>最新实例</dt><dd>{latest??'尚未记录到实例'}</dd></div>
-    {earlier.length?<div><dt>更早实例</dt><dd>{earlier.join('、')}</dd></div>:null}
-    <div><dt>最近记录</dt><dd>{humanTime(view.at)}{stale?`（${stale}）`:''}</dd></div>
-    <div><dt>姿态依据</dt><dd>{view.lastActionPose?'最近一次观测到的动作':'尚未观测到工具动作'}</dd></div>
-   </dl>
-   <p className="actor-note">
-    角色皮肤代表“{ACTOR_LABEL[view.actor]}”这一侧，不代表真实模型或真实作者；名字与模型都来自记录本身，缺失时写“未知”。
-    {view.lastActionPose?'姿态取自最近一次观测到的动作；没有新记录时只标注“最近记录”，不代表仍在持续工作。':'还没有观测到工具动作，姿态保持待命。'}
-   </p>
-  </details>
-  {mode==='replay'?<p className="actor-replay">回放视图：只呈现到当前时间点为止的记录。</p>:null}
+  <button type="button" className="actor-open" onClick={onOpen}>
+   <span className="actor-head"><h3>{label}</h3><span className="actor-cue" aria-hidden="true">查看详情</span></span>
+   <CharacterView character={character} pose={view.pose} name={label} assets={assets} muted={!view.lastActionPose}/>
+   <span className="actor-latest">{sentence}</span>
+  </button>
  </section>;
 }
 
-export function DeskPanel({actors,assets,mode,now,stageOn,stageEvent,packet,onPacket}:{
- actors:ActorState;assets?:Record<string,string>;mode:Mode;now:number;stageOn:boolean;stageEvent:FMEvent|null;packet:FMEvent|null;onPacket:()=>void;
+export function DeskPanel({actors,assets,stageOn,stageEvent,packet,onPacket,onActor,latestCodex,latestDeepseek}:{
+ actors:ActorState;assets?:Record<string,string>;stageOn:boolean;stageEvent:FMEvent|null;packet:FMEvent|null;onPacket:()=>void;onActor:(character:'codex'|'deepseek')=>void;
+ latestCodex:FMEvent|null;latestDeepseek:FMEvent|null;
 }){
  return <div className="desk">
-  <ActorCard view={actors.codex} character="codex" label="Codex（白龙侧）" assets={assets} mode={mode} now={now}/>
+  <ActorCard view={actors.codex} character="codex" label="Codex（白龙侧）" latest={latestCodex} assets={assets} onOpen={()=>onActor('codex')}/>
   <div className="desk-center">
    {packet?<button key={packet.id} type="button" className={`handoff-packet ${packet.kind==='delegate.started'?'packet-right':'packet-left'}`} onClick={onPacket} aria-label="查看交接证据">
     <span aria-hidden="true">📁</span><strong>{packet.kind==='delegate.started'?'任务已递出':'交稿待检查'}</strong><small>点击查看真实交接记录</small>
@@ -114,7 +100,7 @@ export function DeskPanel({actors,assets,mode,now,stageOn,stageEvent,packet,onPa
    </div>
    <div className="stage-hint" aria-hidden="true">HandoffFM · 交接台</div>
   </div>
-  <ActorCard view={actors.deepseek} character="deepseek" label="DeepSeek（蓝鲸侧）" assets={assets} mode={mode} now={now}/>
+  <ActorCard view={actors.deepseek} character="deepseek" label="DeepSeek（蓝鲸侧）" latest={latestDeepseek} assets={assets} onOpen={()=>onActor('deepseek')}/>
  </div>;
 }
 
@@ -152,6 +138,7 @@ export function Timeline({events,index,mode,onSelect,listRef}:{
 
 export function EvidencePanel({event,startMs,panelRef}:{event:FMEvent|null;startMs:number;panelRef:RefObject<HTMLElement|null>}){
  const data=event?event.data:{};
+ const usage=event?.kind==='usage.recorded';
  return <section className="evidence" ref={panelRef} tabIndex={-1} aria-label="证据面板">
   <h3>证据面板</h3>
   {!event?<p className="muted">选择时间线上的一条记录，这里显示原始字段。</p>:<>
@@ -165,6 +152,11 @@ export function EvidencePanel({event,startMs,panelRef}:{event:FMEvent|null;start
     <div><dt>序号</dt><dd>{event.seq??'无'}</dd></div>
     <div><dt>任务</dt><dd>{event.taskId||'未记录'}{event.parentTaskId?` ← ${event.parentTaskId}`:''}</dd></div>
    </dl>
+   {usage?<div className="evidence-block">
+    <h4>用量采样</h4>
+    <p>数字口径与来源说明集中在“用量明细”页签；这里只呈现原始记录，缺失字段不估算。</p>
+    <p className="muted">来源：{typeof data.source==='string'?data.source:'未记录'} · 覆盖度：{typeof data.coverage==='string'?data.coverage:'未记录'}</p>
+   </div>:null}
    {event.kind==='file.changed'?<div className="evidence-block">
     <h4>文件变化{event.evidence==='unknown'?' · 归属未知':''}</h4>
     <p>路径：{data.path?baseName(String(data.path)):'未记录'}</p>

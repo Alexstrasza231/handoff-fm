@@ -7,7 +7,7 @@ export type {Actor,EventKind,Evidence,FMEvent};
 export const KIND_LABEL:Record<EventKind,string>={
  'session.started':'会话开始','task.started':'任务开始','delegate.started':'派发代理','tool.started':'调用工具',
  'tool.completed':'工具结束','file.changed':'文件变化','agent.message':'代理声明','delegate.completed':'代理交稿',
- 'delegate.failed':'代理失败','turn.completed':'回合完成','turn.interrupted':'回合已中断','recording.gap':'记录缺口'
+ 'delegate.failed':'代理失败','turn.completed':'回合完成','turn.interrupted':'回合已中断','recording.gap':'记录缺口','usage.recorded':'用量采样'
 };
 export const EVIDENCE_LABEL:Record<Evidence,string>={observed:'观测到',declared:'代理声明',unknown:'归属未知'};
 export const ACTOR_LABEL:Record<Actor,string>={codex:'Codex',deepseek:'DeepSeek',unknown:'未知来源',system:'系统'};
@@ -144,6 +144,7 @@ const IDLE_LINE='还没有记录到动作';
 export function deriveActors(events:FMEvent[]):ActorState{
  const views={codex:emptyView('codex'),deepseek:emptyView('deepseek')};
  for(const event of events){
+  if(event.kind==='usage.recorded')continue;
   const character=characterOf(event.actor);
   if(character==='none')continue;
   const view=views[character];
@@ -167,7 +168,7 @@ export function deriveActors(events:FMEvent[]):ActorState{
    views.codex.pose='accept';views.codex.status='接手失败记录';
   }
  }
- const last=events.at(-1);
+ const last=[...events].reverse().find(event=>event.kind!=='usage.recorded');
  return {codex:finalize(views.codex),deepseek:finalize(views.deepseek),nextCharacter:last&&characterOf(last.actor)!=='none'?characterOf(last.actor) as Character:null};
 }
 

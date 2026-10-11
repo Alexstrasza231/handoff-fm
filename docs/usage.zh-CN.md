@@ -20,7 +20,9 @@ HandoffFM 只负责观察。
 不需要构建，也不需要开发依赖：
 
 ```sh
-npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.1/handoff-fm-0.1.1.tgz
+npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.2/handoff-fm-0.1.2.tgz
+cd /path/to/your/project
+handoff-fm init
 handoff-fm doctor
 ```
 
@@ -48,7 +50,7 @@ node dist/cli.js doctor
 - 离线导出与 watch 查看器都依赖 Web 构建产物（`web-dist/`）。如果缺少 `web-dist/`，
   `watch` 打开页面会返回 `Resource unavailable`，`export` 会因读取 `web-dist/index.html`
   失败而报错；请先执行 `npm run build`。
-- v0.1.1 是 GitHub 发布产物，**没有**发布到任何包注册表，因此 `npm install handoff-fm` 或
+- v0.1.2 是 GitHub 发布产物，**没有**发布到任何包注册表，因此 `npm install handoff-fm` 或
   `npx handoff-fm` 都不会解析到它。
 - 下文用 `handoff-fm <命令>` 表示全局安装；在仓库里请替换为 `node dist/cli.js <命令>`。
 
@@ -177,13 +179,16 @@ node dist/cli.js doctor --project ~/my-app
 
 ## 6. watch：本地实时查看器
 
-开发版的新首页只显示双角色、任务标题和最近六条活动。每条活动列出真实工具侧、事件类型和目标；“归属未知”保留原记录含义。点击活动或交接包展开操作详情，原始 JSON 再按需展开。
+首页显示 Codex 和 DeepSeek，各一句最近动作、任务标题、连接状态和一行当前任务用量。
+未采集到的用量留空，不估算。模型、实例 ID 和证据说明移到详情。
 
-- **查看最近修改**：一次点击打开最新文件差异。
-- **重播最近交接**：从最近一次派活开始播放；“回到现场”恢复实时视图。回放控制里可调整速度、逐条移动或跳到交接／失败。
-- **更多**：选择运行、试玩示例、分享预览、字幕和减少动效。全部记录及完整实例信息默认收起。
+- **查看详情**：打开 **过程记录 / 用量明细** 两个页签；点角色可筛选对应人员。
+- **回放过程**：打开时间位置、速度、逐条移动和交接／失败跳转。
+- **更多**：选择运行、试玩示例、分享预览、字幕和减少动效。
+- **看个例子**：空状态里的静态示例入口，明确标为示例，不调用模型。
 
-舞台字幕是固定趣味台词，真实原话与命令结果在操作详情中。简洁舞台与刷新后保留任务选择的修复随 v0.1.1 发布。
+舞台字幕是固定趣味台词，真实原话与命令结果在操作详情中。
+用量来源、部分数据、任务关联与 `--usage` 导出说明见[任务用量指南](./usage-tokens.zh-CN.md)。
 
 ```powershell
 node dist/cli.js watch --project C:\work\my-app

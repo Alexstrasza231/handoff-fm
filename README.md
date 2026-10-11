@@ -8,6 +8,26 @@ HandoffFM turns a local Codex ↔ DeepSeek collaboration into a whale-and-dragon
 handoff, inspect recorded changes, and replay the work without running it again. Records stay local;
 you choose what to include in an offline share.
 
+**v0.1.2:** a simpler home page — one recent action per agent, recorded task Tokens, unique tools
+and elapsed time. Open **查看详情 → 过程记录 / 用量明细** for evidence and source breakdowns;
+**回放过程** replays the work. No account-balance or cost estimates. [How usage is counted](./docs/usage-tokens.md).
+
+### One glance, then the evidence
+
+DeepSeek built this simpler interface. Codex implemented recording and checked the integration.
+A real follow-up delegation produced a usage cheat sheet, with **28,307 recorded DeepSeek Tokens**.
+Open usage details to see the input/output/cache receipt. Earlier uncaptured work remains partial.
+
+<a href="docs/cases/task-usage.md"><img src="docs/media/v012-task-usage.png" alt="v0.1.2: actual collaboration, compact home page and partial recorded task usage, anonymized offline projection" width="880"></a>
+
+[Real task and numeric receipt](./docs/cases/task-usage.md) · [中文案例](./docs/cases/task-usage.zh-CN.md) · [Reviewed anonymous events](./docs/cases/task-usage-events.json)
+
+This is an offline projection of real Windows records, with usage explicitly included and content
+excluded. Tokens count consumed input and output across requests, including cache; they are not
+unique words, fees or remaining quota. The built-in **看个例子** remains separately labelled sample.
+
+<details><summary>Earlier refresh-selection debugging case (v0.1.1 interface)</summary>
+
 ### A real problem, fixed by the two agents
 
 **“I refreshed, and my active collaboration disappeared.”** DeepSeek fixed backend run ordering;
@@ -20,6 +40,8 @@ cause, the failing regressions, and commands to verify it yourself.
 
 This screenshot uses actual records from that delegation, with prompts, paths, differences and
 outputs excluded and identities aliased. It is a real offline projection, not the sample scenario.
+
+</details>
 
 <details><summary>Earlier real component-edit recording (v0.1.0 interface)</summary>
 
@@ -39,8 +61,8 @@ attribution, and the corrected verification result is an agent declaration. [Rec
   `evidence` level, and an export never upgrades one.
 - **Nothing is uploaded.** Records live in `<project>/.handoff-fm/`, the viewer binds
   `127.0.0.1` only, and exports are self-contained files that make no network requests.
-- **Share the shape, not the content.** The default export has no prompts, paths, diffs, or
-  outputs. Each category is a separate opt-in, previewed first.
+- **Share the shape, not the content.** The default export has no prompts, paths, diffs,
+  outputs or usage. Each category is a separate opt-in, previewed first.
 
 ## Quickstart (installed release)
 
@@ -51,7 +73,7 @@ its stage captions are Chinese.
 
 ```sh
 # 1. install the CLI (self-contained bundle, no build step)
-npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.1/handoff-fm-0.1.1.tgz
+npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.2/handoff-fm-0.1.2.tgz
 
 # 2. enable one project, then check the environment
 cd /path/to/your/project
@@ -139,7 +161,7 @@ exports are self-contained: inline bundle, `default-src 'none'`, no network fetc
 - Desktop chat capture is not complete and nested-tool capture is not orchestrated: hooks record
   what the client actually delivers. Treat `codexHooks: observed` as "records are arriving for this
   project", not as proof of completeness.
-- Not yet published to a package registry: the commands above target the GitHub **v0.1.1** release
+- Not yet published to a package registry: the commands above target the GitHub **v0.1.2** release
   artifact. There is no npm registry install path.
 
 ## Development

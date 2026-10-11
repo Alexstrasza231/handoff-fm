@@ -17,7 +17,7 @@ export async function initProject(root:string):Promise<ProjectConfig> {
  return loadConfig(root);
 }
 export async function loadConfig(root:string):Promise<ProjectConfig>{const v=JSON.parse(await readFile(join(dir(root),'config.json'),'utf8'));if(v.version!==1||!Array.isArray(v.boundSessions))throw new Error('Unsupported project config');return v;}
-const kinds=new Set(['session.started','task.started','delegate.started','tool.started','tool.completed','file.changed','agent.message','delegate.completed','delegate.failed','turn.completed','turn.interrupted','recording.gap']);
+const kinds=new Set(['session.started','task.started','delegate.started','tool.started','tool.completed','file.changed','agent.message','delegate.completed','delegate.failed','turn.completed','turn.interrupted','recording.gap','usage.recorded']);
 export function validEvent(e:FMEvent):boolean{return e?.version===1&&safeId(e.id)&&safeId(e.runId)&&typeof e.sessionId==='string'&&e.sessionId.length<200&&['codex','deepseek','unknown','system'].includes(e.actor)&&kinds.has(e.kind)&&['observed','declared','unknown'].includes(e.evidence)&&Number.isFinite(Date.parse(e.at))&&!!e.data&&typeof e.data==='object'&&!Array.isArray(e.data);}
 export async function enqueue(root:string,event:FMEvent):Promise<void> {
  if(!validEvent(event))throw new Error('Invalid event');

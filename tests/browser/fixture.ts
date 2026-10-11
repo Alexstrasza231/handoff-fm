@@ -229,16 +229,15 @@ export async function openMore(page:Page):Promise<void>{
  if(await button.getAttribute('aria-expanded')!=='true')await button.click();
 }
 export async function openHistory(page:Page):Promise<void>{
- if(await page.locator('.history-details').getAttribute('open')===null)await page.locator('.history-details > summary').click();
+ if(!await page.getByRole('region',{name:'详情面板',exact:true}).isVisible())await page.getByRole('button',{name:'查看详情',exact:true}).click();
+ await page.getByRole('tab',{name:'过程记录',exact:true}).click();
 }
 export async function openEvidence(page:Page):Promise<void>{
- if(await page.locator('.evidence-details').getAttribute('open')===null)await page.locator('.evidence-details > summary').click();
+ await openHistory(page);
 }
 export async function openReplayControls(page:Page):Promise<void>{
  if(!await page.locator('.replay-bar').isVisible()){
-  const handoff=page.getByRole('button',{name:'重播最近交接',exact:true});
-  if(await handoff.isEnabled())await handoff.click();
-  else{await openMore(page);await page.getByRole('button',{name:'回放全部记录',exact:true}).click();}
+  await page.getByRole('button',{name:'回放过程',exact:true}).click();
   const pause=page.getByRole('button',{name:'暂停',exact:true});
   if(await pause.isVisible())await pause.click();
  }
@@ -249,5 +248,6 @@ export async function openReplayControls(page:Page):Promise<void>{
 export async function enterDemo(page:Page,expectedEvents:number):Promise<void>{
  await openMore(page);
  await page.getByRole('button',{name:'试玩示例'}).click();
+ await openHistory(page);
  await expect(timelineRows(page)).toHaveCount(expectedEvents);
 }

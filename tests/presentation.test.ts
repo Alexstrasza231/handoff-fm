@@ -13,6 +13,7 @@ test('task title extracts the user request and uses the most recent recorded tas
  const wrapped='<in-app-browser-context>irrelevant metadata</in-app-browser-context>\n## My request:\n把卡片改成蓝色';
  assert.equal(taskTitle([event('task.started','codex',{prompt:'旧任务'}),event('task.started','codex',{prompt:wrapped})]),'把卡片改成蓝色');
  assert.equal(taskTitle([]),'等待记录');
+ assert.equal(taskTitle([event('task.started','codex',{prompt:'PLEASE IMPLEMENT THIS PLAN:\n# HandoffFM v0.1.2：新手首页与任务用量\n\n## 首页更简单\n- 一句话'})]),'HandoffFM v0.1.2：新手首页与任务用量');
  assert.equal(taskTitle([event('task.started','codex',{prompt:'<send_user_message_question_reply>[{"answer":"开始修改"}]</send_user_message_question_reply>'})]),'开始修改');
 });
 

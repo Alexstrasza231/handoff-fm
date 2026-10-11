@@ -1,4 +1,4 @@
-import {openReplayControls,test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,replayRange,selectedSeq,timelineRows} from './fixture';
+import {openHistory,openReplayControls,test,expect,makeEvent,characterArt,expectNoUnexpectedErrors,replayRange,selectedSeq,timelineRows} from './fixture';
 
 const KEY_ONE='CANARY_KEYBOARD_ONE_1a2b';
 const KEY_TWO='CANARY_KEYBOARD_TWO_3c4d';
@@ -15,6 +15,7 @@ test('keyboard moves the selection, steps the replay, and respects form controls
   makeEvent({id:'canary-34',actor:'deepseek',kind:'tool.completed',offsetSeconds:3,data:{tool:'read_file',callId:'k1',status:'completed',marker:KEY_TWO}})
  ]);
  await page.goto(watcher.url);
+ await openHistory(page);
  await expect(timelineRows(page)).toHaveCount(4);
  await expect(selectedSeq(page)).toHaveText('#4');
 

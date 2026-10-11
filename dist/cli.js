@@ -2,8 +2,8 @@
 import {createRequire} from 'node:module';const require=createRequire(import.meta.url);
 
 // src/cli.ts
-import { writeFile as writeFile7 } from "fs/promises";
-import { resolve as resolve7, join as join10 } from "path";
+import { writeFile as writeFile8 } from "fs/promises";
+import { resolve as resolve8, join as join12 } from "path";
 import { spawnSync as spawnSync3 } from "child_process";
 import { pathToFileURL } from "url";
 
@@ -180,7 +180,7 @@ async function loadConfig(root) {
   if (v.version !== 1 || !Array.isArray(v.boundSessions)) throw new Error("Unsupported project config");
   return v;
 }
-var kinds = /* @__PURE__ */ new Set(["session.started", "task.started", "delegate.started", "tool.started", "tool.completed", "file.changed", "agent.message", "delegate.completed", "delegate.failed", "turn.completed", "turn.interrupted", "recording.gap"]);
+var kinds = /* @__PURE__ */ new Set(["session.started", "task.started", "delegate.started", "tool.started", "tool.completed", "file.changed", "agent.message", "delegate.completed", "delegate.failed", "turn.completed", "turn.interrupted", "recording.gap", "usage.recorded"]);
 function validEvent(e) {
   return e?.version === 1 && safeId(e.id) && safeId(e.runId) && typeof e.sessionId === "string" && e.sessionId.length < 200 && ["codex", "deepseek", "unknown", "system"].includes(e.actor) && kinds.has(e.kind) && ["observed", "declared", "unknown"].includes(e.evidence) && Number.isFinite(Date.parse(e.at)) && !!e.data && typeof e.data === "object" && !Array.isArray(e.data);
 }
@@ -348,13 +348,13 @@ async function findProject(input) {
 }
 
 // src/hooks.ts
-import { readFile as readFile6, writeFile as writeFile5, unlink as unlink4, readdir as readdir3 } from "fs/promises";
-import { join as join6, resolve as resolve5 } from "path";
-import { randomUUID as randomUUID5 } from "crypto";
+import { readFile as readFile8, writeFile as writeFile6, unlink as unlink4, readdir as readdir5 } from "fs/promises";
+import { join as join8, resolve as resolve6 } from "path";
+import { randomUUID as randomUUID6 } from "crypto";
 
 // src/snapshots.ts
-import { readdir as readdir2, lstat, readFile as readFile3, writeFile as writeFile3, realpath as realpath3 } from "fs/promises";
-import { join as join4, resolve as resolve3 } from "path";
+import { readdir as readdir3, lstat, readFile as readFile4, writeFile as writeFile3, realpath as realpath4 } from "fs/promises";
+import { join as join5, resolve as resolve4 } from "path";
 import { createHash } from "crypto";
 
 // node_modules/diff/libesm/diff/base.js
@@ -787,27 +787,72 @@ function splitLines(text) {
   return result;
 }
 
+// src/transcript-privacy.ts
+import { readFile as readFile3, readdir as readdir2, realpath as realpath3 } from "fs/promises";
+import { join as join4, isAbsolute as isAbsolute3, resolve as resolve3, relative as relative3 } from "path";
+var pathKey = (path2) => {
+  const p = resolve3(path2).replaceAll("\\", "/");
+  return process.platform === "win32" ? p.toLowerCase() : p;
+};
+async function transcriptExclusions(root) {
+  const paths = /* @__PURE__ */ new Set(), identities = /* @__PURE__ */ new Set(), mentions = [];
+  let uncertain = false;
+  for (const directory of ["usage-sources", "usage-paths"]) {
+    let names;
+    const folder = join4(dir(root), directory);
+    try {
+      names = (await readdir2(folder)).filter((n) => n.endsWith(".json") && !n.endsWith(".cursor.json"));
+    } catch (e) {
+      if (e.code !== "ENOENT") uncertain = true;
+      continue;
+    }
+    for (const name of names) try {
+      const v = JSON.parse(await readFile3(join4(folder, name), "utf8"));
+      if (typeof v.path !== "string" || !isAbsolute3(v.path)) {
+        uncertain = true;
+        continue;
+      }
+      const key = pathKey(v.path);
+      paths.add(key);
+      mentions.push(key);
+      if (typeof v.identity === "string") identities.add(v.identity);
+      const rel = relative3(root, v.path).replaceAll("\\", "/");
+      if (rel && !rel.startsWith("..")) mentions.push(process.platform === "win32" ? rel.toLowerCase() : rel);
+      try {
+        paths.add(pathKey(await realpath3(v.path)));
+      } catch {
+      }
+    } catch {
+      uncertain = true;
+    }
+  }
+  return { paths, identities, mentions, uncertain };
+}
+
 // src/snapshots.ts
 var hash = (s) => createHash("sha256").update(s).digest("hex");
-async function snapshot(root) {
-  root = await realpath3(root);
+async function snapshotWithStatus(root) {
+  root = await realpath4(root);
+  const excluded = await transcriptExclusions(root);
+  if (excluded.uncertain) return { files: {}, available: false };
   const out = {};
   let visited = 0;
   async function scan(path2) {
-    for (const name of await readdir2(path2)) {
+    for (const name of await readdir3(path2)) {
       if (++visited > 5e3) return;
-      const file = join4(path2, name), rel = safeRelative(root, file);
+      const file = join5(path2, name), rel = safeRelative(root, file);
       if (!rel) continue;
-      const stat = await lstat(file);
-      if (stat.isSymbolicLink()) continue;
-      const canonical = await realpath3(file);
+      const stat2 = await lstat(file);
+      if (stat2.isSymbolicLink()) continue;
+      const canonical = await realpath4(file);
       if (!safeRelative(root, canonical)) continue;
-      if (stat.isDirectory()) {
+      if (excluded.paths.has(pathKey(file)) || excluded.paths.has(pathKey(canonical)) || excluded.identities.has(`${stat2.dev}:${stat2.ino}`)) continue;
+      if (stat2.isDirectory()) {
         await scan(file);
         continue;
       }
-      if (!stat.isFile() || stat.size > 1024 * 1024) continue;
-      const bytes = await readFile3(file);
+      if (!stat2.isFile() || stat2.size > 1024 * 1024) continue;
+      const bytes = await readFile4(file);
       if (bytes.includes(0)) continue;
       const text = bytes.toString("utf8");
       if (text.includes("\uFFFD")) continue;
@@ -816,12 +861,15 @@ async function snapshot(root) {
     }
   }
   await scan(root);
-  return out;
+  return { files: out, available: true };
+}
+async function snapshot(root) {
+  return (await snapshotWithStatus(root)).files;
 }
 async function blob(root, text) {
   const key = hash(text);
   try {
-    await writeFile3(join4(dir(root), "objects", key + ".txt"), text, { flag: "wx" });
+    await writeFile3(join5(dir(root), "objects", key + ".txt"), text, { flag: "wx" });
   } catch (e) {
     if (e.code !== "EEXIST") throw e;
   }
@@ -832,18 +880,21 @@ function changes(before, after) {
 }
 
 // src/evidence.ts
-import { lstat as lstat2, realpath as realpath4, readFile as readFile4 } from "fs/promises";
-import { resolve as resolve4 } from "path";
+import { lstat as lstat2, realpath as realpath5, readFile as readFile5 } from "fs/promises";
+import { resolve as resolve5 } from "path";
 var excludedMention = /(?:^|[\s"'\\/=:])(?:\.env(?:[.\s"'\\/]|$)|auth\.json|credentials(?:\.|[\s"'\\/])|id_rsa\b|id_ed25519\b|node_modules[\\/]|\.git[\\/]|\.handoff-fm[\\/]|(?:dist|web-dist|build|coverage)[\\/])|\.(?:pem|key|p12|pfx|kubeconfig)\b/i;
 async function excludedEvidence(root, input, cwd = root) {
+  const transcripts = await transcriptExclusions(root);
+  if (transcripts.uncertain) return true;
   const tool = input && typeof input === "object" ? input : {};
-  const base = resolve4(cwd, typeof tool.workdir === "string" ? tool.workdir : typeof tool.cwd === "string" ? tool.cwd : ".");
+  const base = resolve5(cwd, typeof tool.workdir === "string" ? tool.workdir : typeof tool.cwd === "string" ? tool.cwd : ".");
   const paths = [];
   let excluded = false;
   function visit(v, depth = 0) {
     if (depth > 8) return;
     if (typeof v === "string") {
-      if (excludedMention.test(v) || v.includes("\0")) excluded = true;
+      const text = v.replaceAll("\\", "/");
+      if (excludedMention.test(v) || v.includes("\0") || transcripts.mentions.some((path2) => (process.platform === "win32" ? text.toLowerCase() : text).includes(path2))) excluded = true;
       return;
     }
     if (v && typeof v === "object") for (const [key, val] of Object.entries(v)) {
@@ -855,13 +906,13 @@ async function excludedEvidence(root, input, cwd = root) {
   visit(input);
   if (excluded) return true;
   for (const path2 of paths) {
-    const target = resolve4(base, path2);
-    if (!safeRelative(root, target) || /\.(png|jpe?g|gif|webp|pdf|zip|exe|dll|bin|mp[34]|webm)$/i.test(path2)) return true;
+    const target = resolve5(base, path2);
+    if (transcripts.paths.has(pathKey(target)) || !safeRelative(root, target) || /\.(png|jpe?g|gif|webp|pdf|zip|exe|dll|bin|mp[34]|webm)$/i.test(path2)) return true;
     try {
-      const st = await lstat2(target);
-      if (st.isSymbolicLink() || st.size > 1024 * 1024 || !safeRelative(await realpath4(root), await realpath4(target))) return true;
+      const st = await lstat2(target), canonical = await realpath5(target);
+      if (st.isSymbolicLink() || st.size > 1024 * 1024 || transcripts.paths.has(pathKey(canonical)) || transcripts.identities.has(`${st.dev}:${st.ino}`) || !safeRelative(await realpath5(root), canonical)) return true;
       if (st.isFile()) {
-        const content = await readFile4(target);
+        const content = await readFile5(target);
         if (content.includes(0) || content.toString("utf8").includes("\uFFFD")) return true;
       }
     } catch {
@@ -871,13 +922,13 @@ async function excludedEvidence(root, input, cwd = root) {
 }
 
 // src/attribution.ts
-import { readFile as readFile5, writeFile as writeFile4, rename as rename3, unlink as unlink3 } from "fs/promises";
-import { join as join5 } from "path";
+import { readFile as readFile6, writeFile as writeFile4, rename as rename3, unlink as unlink3 } from "fs/promises";
+import { join as join6 } from "path";
 import { randomUUID as randomUUID4 } from "crypto";
-var path = (root) => join5(root, ".handoff-fm", "attribution-epoch");
+var path = (root) => join6(root, ".handoff-fm", "attribution-epoch");
 async function attributionEpoch(root) {
   try {
-    const value = await readFile5(path(root), "utf8");
+    const value = await readFile6(path(root), "utf8");
     return /^[a-f0-9-]{36}$/.test(value) ? value : null;
   } catch (e) {
     return e.code === "ENOENT" ? "initial" : null;
@@ -897,18 +948,322 @@ async function rotateAttributionEpoch(root) {
   }
 }
 
+// src/codex-usage.ts
+import { open as open2, readFile as readFile7, writeFile as writeFile5, rename as rename4, mkdir as mkdir3, readdir as readdir4, stat } from "fs/promises";
+import { join as join7, isAbsolute as isAbsolute5 } from "path";
+import { createHash as createHash2, randomUUID as randomUUID5 } from "crypto";
+
+// src/usage.ts
+var numericKeys = ["input", "output", "cacheRead", "cacheWrite", "reasoning", "total"];
+function count(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : void 0;
+}
+function validNumbers(v) {
+  if (!v || typeof v !== "object") return null;
+  const source = v, n = {};
+  for (const k of numericKeys) if (source[k] !== void 0) {
+    const value = count(source[k]);
+    if (value === void 0) return null;
+    n[k] = value;
+  }
+  if (n.reasoning !== void 0 && n.output !== void 0 && n.reasoning > n.output) return null;
+  if (n.input !== void 0 && (n.cacheRead ?? 0) + (n.cacheWrite ?? 0) > n.input) return null;
+  if (n.total !== void 0 && n.input !== void 0 && n.output !== void 0 && n.total !== n.input + n.output) return null;
+  return n;
+}
+function deepseekUsage(raw, sampleKey) {
+  const missing = { sampleKey, source: "deepseek-step", coverage: "unavailable" };
+  if (!raw || typeof raw !== "object") return missing;
+  const v = raw;
+  const mapping = { inputTokens: "input", outputTokens: "output", cacheReadTokens: "cacheRead", cacheWriteTokens: "cacheWrite", reasoningTokens: "reasoning", totalTokens: "total" };
+  const n = {};
+  for (const [from, to] of Object.entries(mapping)) if (v[from] !== void 0) {
+    const value = count(v[from]);
+    if (value === void 0) return missing;
+    n[to] = value;
+  }
+  if (n.input === void 0 || n.output === void 0 || n.reasoning !== void 0 && n.reasoning > n.output) return missing;
+  const known = n.input + (n.cacheRead ?? 0) + (n.cacheWrite ?? 0), cachesKnown = n.cacheRead !== void 0 && n.cacheWrite !== void 0;
+  const input = n.total !== void 0 ? n.total - n.output : cachesKnown ? known : void 0;
+  if (input !== void 0 && (input < known || cachesKnown && input !== known || !Number.isSafeInteger(input))) return missing;
+  return { sampleKey, source: "deepseek-step", coverage: input !== void 0 && cachesKnown ? "complete" : "partial", input, output: n.output, cacheRead: n.cacheRead, cacheWrite: n.cacheWrite, reasoning: n.reasoning, total: input === void 0 ? void 0 : input + n.output };
+}
+function resolveParentTask(events, sessionId) {
+  const active2 = /* @__PURE__ */ new Set();
+  for (const e of events) {
+    if (e.actor !== "codex" || e.sessionId !== sessionId || !e.taskId) continue;
+    if (e.kind === "task.started") active2.add(e.taskId);
+    if (e.kind === "turn.completed" || e.kind === "turn.interrupted") active2.delete(e.taskId);
+  }
+  return active2.size === 1 ? [...active2][0] : void 0;
+}
+
+// src/codex-usage.ts
+var hash2 = (s) => createHash2("sha256").update(s).digest("hex");
+var CHUNK = 256 * 1024;
+var TAIL = 2 * 1024 * 1024;
+var LINE = 64 * 1024;
+async function replaceFile(from, to) {
+  for (let attempt = 0; ; attempt++) try {
+    await rename4(from, to);
+    return;
+  } catch (error) {
+    if (attempt >= 5 || !["EPERM", "EACCES", "EBUSY"].includes(String(error.code))) throw error;
+    await new Promise((resolve9) => setTimeout(resolve9, 20 * (attempt + 1)));
+  }
+}
+function newNumericState(fresh = false) {
+  return { sum: {}, partial: !fresh, fresh };
+}
+function counters(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const n = {};
+  const fields = { input_tokens: "input", output_tokens: "output", cached_input_tokens: "cacheRead", cache_write_input_tokens: "cacheWrite", reasoning_output_tokens: "reasoning", total_tokens: "total" };
+  for (const [key, to] of Object.entries(fields)) if (raw[key] !== void 0) {
+    const value = count(raw[key]);
+    if (value === void 0) return null;
+    n[to] = value;
+  }
+  if (n.input === void 0 || n.output === void 0) return null;
+  n.total ??= n.input + n.output;
+  return validNumbers(n);
+}
+function parseNumericLine(line, state) {
+  if (line.length > LINE) {
+    state.partial = true;
+    return null;
+  }
+  let v;
+  try {
+    v = JSON.parse(line);
+  } catch {
+    state.partial = true;
+    return null;
+  }
+  const p = v?.payload;
+  if (v?.type === "event_msg" && p?.type === "task_started" || v?.type === "turn_context") {
+    const turn = typeof p?.turn_id === "string" && safeId(p.turn_id) ? p.turn_id : void 0;
+    if (turn && turn !== state.turn) {
+      state.turn = turn;
+      state.sum = {};
+      state.partial = !!state.boundaryMissing || !state.last && !state.fresh;
+      state.boundaryMissing = false;
+    }
+    return null;
+  }
+  if (v?.type !== "event_msg" || p?.type !== "token_count") return null;
+  const next = counters(p.info?.total_token_usage);
+  if (!next) {
+    state.partial = true;
+    return state.turn ? { taskId: state.turn, usage: { ...state.sum, sampleKey: state.turn, source: "codex-transcript", coverage: state.sum.total === void 0 ? "unavailable" : "partial" } } : null;
+  }
+  const previous = state.last ?? (state.fresh ? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0, total: 0 } : void 0);
+  state.fresh = false;
+  if (previous && state.turn) {
+    const reset = next.input < previous.input || next.output < previous.output;
+    if (reset) state.partial = true;
+    else for (const key of numericKeys) {
+      if (next[key] === void 0 || previous[key] === void 0) {
+        delete state.sum[key];
+        continue;
+      }
+      const delta = next[key] - previous[key];
+      if (delta < 0) {
+        state.partial = true;
+        delete state.sum[key];
+        continue;
+      }
+      state.sum[key] = (state.sum[key] ?? 0) + delta;
+    }
+  } else if (state.turn) state.partial = true;
+  state.last = next;
+  if (!state.turn) return null;
+  const sum = validNumbers(state.sum) ?? { input: state.sum.input, output: state.sum.output, total: state.sum.total };
+  return { taskId: state.turn, usage: { ...sum, sampleKey: state.turn, source: "codex-transcript", coverage: sum.total === void 0 ? "unavailable" : state.partial ? "partial" : "complete" } };
+}
+async function registerTranscript(root, input) {
+  if (typeof input.transcript_path !== "string" || !isAbsolute5(input.transcript_path) || !safeId(input.session_id) || !safeId(input.turn_id)) return;
+  const pathFolder = join7(dir(root), "usage-paths");
+  await mkdir3(pathFolder, { recursive: true });
+  let identity;
+  try {
+    const info = await stat(input.transcript_path);
+    identity = `${info.dev}:${info.ino}`;
+  } catch {
+  }
+  const pathMarker = join7(pathFolder, hash2(input.transcript_path + (identity ?? "")) + ".json");
+  try {
+    await writeFile5(pathMarker, JSON.stringify({ path: input.transcript_path, identity }), { flag: "wx" });
+  } catch (e) {
+    if (e.code !== "EEXIST") throw e;
+  }
+  const folder = join7(dir(root), "usage-sources");
+  await mkdir3(folder, { recursive: true });
+  const turnFolder = join7(dir(root), "usage-turns");
+  await mkdir3(turnFolder, { recursive: true });
+  const marker = join7(turnFolder, `${hash2(input.session_id)}-${hash2(input.turn_id)}.json`);
+  try {
+    await writeFile5(marker, JSON.stringify({ sessionId: input.session_id, turnId: input.turn_id }), { flag: "wx" });
+  } catch (e) {
+    if (e.code !== "EEXIST") throw e;
+  }
+  const file = join7(folder, hash2(input.session_id) + ".json");
+  let prior;
+  try {
+    prior = JSON.parse(await readFile7(file, "utf8"));
+  } catch {
+  }
+  const turns = [.../* @__PURE__ */ new Set([...prior && prior.path === input.transcript_path ? prior.turns : [], input.turn_id])].slice(-128);
+  const temp = file + "." + randomUUID5() + ".tmp";
+  await writeFile5(temp, JSON.stringify({ sessionId: input.session_id, path: input.transcript_path, turns }));
+  await replaceFile(temp, file);
+}
+var active = /* @__PURE__ */ new Set();
+async function pollCodexUsage(root) {
+  if (active.has(root)) return;
+  active.add(root);
+  let release = null;
+  try {
+    const folder = join7(dir(root), "usage-sources");
+    let names;
+    try {
+      names = (await readdir4(folder)).filter((n) => n.endsWith(".json") && !n.endsWith(".cursor.json"));
+    } catch {
+      return;
+    }
+    if (!names.length) return;
+    release = await acquireCollectorLock(join7(dir(root), "usage.lock"));
+    if (!release) return;
+    const roundFile = join7(folder, "round");
+    let round = 0;
+    try {
+      round = Number(await readFile7(roundFile, "utf8")) || 0;
+    } catch {
+    }
+    const selected = Array.from({ length: Math.min(4, names.length) }, (_, i) => names[(round + i) % names.length]);
+    await writeFile5(roundFile, String((round + selected.length) % names.length));
+    for (const name of selected) {
+      let source;
+      try {
+        source = JSON.parse(await readFile7(join7(folder, name), "utf8"));
+      } catch {
+        continue;
+      }
+      if (!safeId(source.sessionId) || !Array.isArray(source.turns) || !isAbsolute5(source.path)) continue;
+      try {
+        const turnFolder = join7(dir(root), "usage-turns");
+        for (const name2 of (await readdir4(turnFolder)).filter((n) => n.startsWith(hash2(source.sessionId) + "-"))) {
+          const marker = JSON.parse(await readFile7(join7(turnFolder, name2), "utf8"));
+          if (marker.sessionId === source.sessionId && safeId(marker.turnId) && !source.turns.includes(marker.turnId)) source.turns.push(marker.turnId);
+        }
+      } catch {
+      }
+      const cursorFile = join7(folder, name.replace(".json", ".cursor.json"));
+      let cursor;
+      try {
+        cursor = JSON.parse(await readFile7(cursorFile, "utf8"));
+      } catch {
+      }
+      let fd;
+      try {
+        fd = await open2(source.path, "r");
+        const info = await fd.stat();
+        if (!info.isFile()) continue;
+        const inode = `${info.dev}:${info.ino}:${info.birthtimeMs}`, pathHash = hash2(source.path);
+        let restart = !!cursor && (cursor.pathHash !== pathHash || cursor.inode !== inode || info.size < cursor.position);
+        if (cursor && !restart && cursor.position) {
+          const anchor2 = Buffer.alloc(Math.min(256, cursor.position));
+          await fd.read(anchor2, 0, anchor2.length, cursor.position - anchor2.length);
+          restart = hash2(anchor2) !== cursor.anchor;
+        }
+        if (restart && cursor) {
+          const probe = newNumericState(false), tail = Buffer.alloc(Math.min(CHUNK, info.size));
+          await fd.read(tail, 0, tail.length, info.size - tail.length);
+          const lines = tail.toString("utf8").split("\n");
+          if (info.size > tail.length) lines.shift();
+          if (!tail.toString("utf8").endsWith("\n")) lines.pop();
+          for (const line of lines) if (line) parseNumericLine(line, probe);
+          if (probe.turn !== cursor.state.turn) {
+            cursor.state.turn = probe.turn;
+            cursor.state.sum = {};
+          }
+          cursor.state.boundaryMissing = !probe.turn;
+          cursor.pathHash = pathHash;
+          cursor.inode = inode;
+          cursor.position = info.size;
+          cursor.discard = false;
+          cursor.state.last = probe.last;
+          cursor.state.fresh = false;
+          cursor.state.partial = true;
+        } else if (!cursor) {
+          const position = Math.max(0, info.size - TAIL);
+          cursor = { pathHash, inode, position, anchor: "", discard: position > 0, state: newNumericState(position === 0), epoch: 0 };
+        }
+        const buffer = Buffer.alloc(Math.min(CHUNK, Math.max(0, info.size - cursor.position)));
+        const { bytesRead } = await fd.read(buffer, 0, buffer.length, cursor.position);
+        const bytes = buffer.subarray(0, bytesRead);
+        let begin = 0;
+        const emit = async (taskId, usage) => {
+          if (!source.turns.includes(taskId)) return;
+          const data = { ...usage, sampleKey: `${taskId}:epoch-${cursor.epoch}` };
+          if (restart || cursor.epoch > 0) data.coverage = data.total === void 0 ? "unavailable" : "partial";
+          await enqueue(root, { version: 1, id: "usage-" + hash2(source.sessionId + JSON.stringify(data)), runId: source.sessionId, sessionId: source.sessionId, actor: "codex", kind: "usage.recorded", at: (/* @__PURE__ */ new Date()).toISOString(), taskId, turnId: taskId, evidence: "observed", data });
+        };
+        for (let i = 0; i < bytes.length; i++) if (bytes[i] === 10) {
+          if (!cursor.discard) {
+            const sample = parseNumericLine(bytes.subarray(begin, i).toString("utf8"), cursor.state);
+            if (sample) await emit(sample.taskId, sample.usage);
+          } else cursor.state.partial = true;
+          cursor.discard = false;
+          begin = i + 1;
+        }
+        if (cursor.discard || bytes.length - begin > LINE) {
+          cursor.discard = true;
+          cursor.state.partial = true;
+          begin = bytes.length;
+        }
+        cursor.position += begin;
+        if (restart && cursor.state.turn) await emit(cursor.state.turn, { ...cursor.state.sum, sampleKey: cursor.state.turn, source: "codex-transcript", coverage: cursor.state.sum.total === void 0 ? "unavailable" : "partial" });
+        const anchor = Buffer.alloc(Math.min(256, cursor.position));
+        await fd.read(anchor, 0, anchor.length, cursor.position - anchor.length);
+        cursor.anchor = hash2(anchor);
+        const temp = cursorFile + ".tmp";
+        await writeFile5(temp, JSON.stringify(cursor));
+        await replaceFile(temp, cursorFile);
+      } catch {
+        for (const taskId of source.turns.slice(-1)) {
+          const sum = cursor?.state.turn === taskId ? cursor.state.sum : {};
+          const data = { ...sum, sampleKey: `${taskId}:epoch-${cursor?.epoch ?? 0}`, source: "codex-transcript", coverage: sum.total === void 0 ? "unavailable" : "partial" };
+          await enqueue(root, { version: 1, id: "usage-missing-" + hash2(source.sessionId + taskId + JSON.stringify(data)), runId: source.sessionId, sessionId: source.sessionId, actor: "codex", kind: "usage.recorded", at: (/* @__PURE__ */ new Date()).toISOString(), taskId, evidence: "observed", data }).catch(() => {
+          });
+        }
+      } finally {
+        await fd?.close();
+      }
+    }
+  } finally {
+    if (release) await release().catch(() => {
+    });
+    active.delete(root);
+  }
+}
+
 // src/hooks.ts
 async function captureHook(root, input) {
   const cfg = await loadConfig(root);
   const bound = cfg.boundSessions.includes(input.session_id);
   const scope = input.tool_input?.workdir || input.tool_input?.cwd || input.cwd;
   const patch = String(input.tool_input?.command || "");
-  const paths = input.tool_name === "apply_patch" ? [...patch.matchAll(/^\*\*\* (?:Update|Add|Delete) File: (.+)$/gm)].map((x) => safeRelative(root, resolve5(input.cwd, x[1]))).filter(Boolean) : [];
+  const paths = input.tool_name === "apply_patch" ? [...patch.matchAll(/^\*\*\* (?:Update|Add|Delete) File: (.+)$/gm)].map((x) => safeRelative(root, resolve6(input.cwd, x[1]))).filter(Boolean) : [];
   if (!within(root, String(scope || "")) && !(bound && (!input.tool_name || paths.length))) return;
+  let transcriptRegistrationFailed = false;
+  await registerTranscript(root, input).catch(() => {
+    transcriptRegistrationFailed = true;
+  });
   const session = String(input.session_id || "unknown"), run2 = safeId(session) ? session : hash(session).slice(0, 32);
-  const tool = String(input.tool_name || ""), call = String(input.tool_use_id || randomUUID5()), file = join6(dir(root), "pending", hash(session + call) + ".json");
+  const tool = String(input.tool_name || ""), call = String(input.tool_use_id || randomUUID6()), file = join8(dir(root), "pending", hash(session + call) + ".json");
   const base = { version: 1, runId: run2, actor: "codex", sessionId: session, turnId: input.turn_id, taskId: input.turn_id, model: input.model, evidence: "observed" };
-  const send = async (kind, data, evidence = "observed") => enqueue(root, { ...base, id: randomUUID5(), kind, at: (/* @__PURE__ */ new Date()).toISOString(), data, evidence });
+  const send = async (kind, data, evidence = "observed") => enqueue(root, { ...base, id: randomUUID6(), kind, at: (/* @__PURE__ */ new Date()).toISOString(), data, evidence });
   switch (input.hook_event_name) {
     case "SessionStart":
       await send("session.started", { source: input.source });
@@ -917,33 +1272,35 @@ async function captureHook(root, input) {
       await send("task.started", { prompt: input.prompt });
       break;
     case "PreToolUse": {
-      const excluded = await excludedEvidence(root, input.tool_input, input.cwd || root);
+      const excluded = transcriptRegistrationFailed || await excludedEvidence(root, input.tool_input, input.cwd || root);
       const epoch = await attributionEpoch(root);
-      await writeFile5(file, JSON.stringify({ session, paths, tool, before: {}, overlap: true, excluded }));
-      const others = (await readdir3(join6(dir(root), "pending"))).filter((n) => n.endsWith(".json") && n !== file.split(/[\\/]/).at(-1));
+      await writeFile6(file, JSON.stringify({ session, paths, tool, before: {}, beforeAvailable: false, overlap: true, excluded }));
+      const others = (await readdir5(join8(dir(root), "pending"))).filter((n) => n.endsWith(".json") && n !== file.split(/[\\/]/).at(-1));
       for (const name of others) {
-        await writeFile5(join6(dir(root), "pending", name) + ".overlap", "1");
-        await writeFile5(file + ".overlap", "1");
+        await writeFile6(join8(dir(root), "pending", name) + ".overlap", "1");
+        await writeFile6(file + ".overlap", "1");
       }
-      const before = await snapshot(root);
-      await writeFile5(file, JSON.stringify({ session, before, paths, tool, overlap: others.length > 0, excluded, epoch }));
+      const captured = transcriptRegistrationFailed ? { files: {}, available: false } : await snapshotWithStatus(root);
+      await writeFile6(file, JSON.stringify({ session, before: captured.files, beforeAvailable: captured.available, paths, tool, overlap: others.length > 0, excluded, epoch }));
       await send("tool.started", { tool, callId: call, input: excluded ? "[excluded file evidence]" : input.tool_input, excluded });
       break;
     }
     case "PostToolUse": {
       let pending;
       try {
-        pending = JSON.parse(await readFile6(file, "utf8"));
+        pending = JSON.parse(await readFile8(file, "utf8"));
       } catch {
       }
       const response = input.tool_response, exitCode = response?.exit_code ?? response?.exitCode;
-      const excluded = pending?.excluded || await excludedEvidence(root, input.tool_input, input.cwd || root);
+      const excluded = transcriptRegistrationFailed || pending?.excluded || await excludedEvidence(root, input.tool_input, input.cwd || root);
       await send("tool.completed", { tool, callId: call, output: excluded ? "[excluded file evidence]" : response, excluded, exitCode, status: typeof exitCode === "number" ? exitCode === 0 ? "completed" : "failed" : response?.isError ? "failed" : "unknown" });
       if (pending) {
-        const after = await snapshot(root);
-        const others = (await readdir3(join6(dir(root), "pending"))).filter((n) => n !== file.split(/[\\/]/).at(-1));
-        for (const change of changes(pending.before, after)) {
-          const flagged = await readFile6(file + ".overlap").then(() => true, () => false);
+        const after = transcriptRegistrationFailed ? { files: {}, available: false } : await snapshotWithStatus(root);
+        const others = (await readdir5(join8(dir(root), "pending"))).filter((n) => n !== file.split(/[\\/]/).at(-1));
+        const paired = pending.beforeAvailable !== false && after.available;
+        if (!paired) await send("recording.gap", { message: "File changes unavailable: a paired snapshot could not be captured" }, "unknown");
+        for (const change of paired ? changes(pending.before, after.files) : []) {
+          const flagged = await readFile8(file + ".overlap").then(() => true, () => false);
           const epoch = await attributionEpoch(root);
           const exact = tool === "apply_patch" && pending.paths.includes(change.path) && !pending.overlap && !flagged && others.length === 0 && epoch !== null && epoch === pending.epoch;
           const beforeBlob = await blob(root, change.before), afterBlob = await blob(root, change.after);
@@ -962,10 +1319,10 @@ async function captureHook(root, input) {
       break;
     case "Interrupt": {
       await send("turn.interrupted", {});
-      for (const name of await readdir3(join6(dir(root), "pending"))) if (name.endsWith(".json")) {
-        const pendingFile = join6(dir(root), "pending", name);
+      for (const name of await readdir5(join8(dir(root), "pending"))) if (name.endsWith(".json")) {
+        const pendingFile = join8(dir(root), "pending", name);
         try {
-          const pending = JSON.parse(await readFile6(pendingFile, "utf8"));
+          const pending = JSON.parse(await readFile8(pendingFile, "utf8"));
           if (pending.session === session) {
             await unlink4(pendingFile);
             await unlink4(pendingFile + ".overlap").catch(() => {
@@ -988,9 +1345,9 @@ async function captureHook(root, input) {
 
 // src/delegate.ts
 import { spawn, spawnSync as spawnSync2 } from "child_process";
-import { readFile as readFile7, writeFile as writeFile6, unlink as unlink5, readdir as readdir4 } from "fs/promises";
-import { join as join7 } from "path";
-import { randomUUID as randomUUID6 } from "crypto";
+import { readFile as readFile9, writeFile as writeFile7, unlink as unlink5, readdir as readdir6 } from "fs/promises";
+import { join as join9 } from "path";
+import { randomUUID as randomUUID7 } from "crypto";
 
 // src/process.ts
 import { spawnSync } from "child_process";
@@ -1012,9 +1369,10 @@ function completionReason(v) {
   return typeof v === "string" ? v : v && typeof v === "object" && "kind" in v ? String(v.kind) : "unknown";
 }
 function normalizeDSH(v, c) {
-  if (!v || ["thinking", "text", "status"].includes(v.type)) return [];
+  if (!v || ["thinking", "text"].includes(v.type)) return [];
   const truncated = !!v.truncated || JSON.stringify(v.input ?? v.result ?? "").length > 65536;
-  const base = { version: 1, id: randomUUID6(), ...c, actor: "deepseek", at: (/* @__PURE__ */ new Date()).toISOString(), evidence: truncated ? "unknown" : "observed" };
+  const base = { version: 1, id: randomUUID7(), ...c, actor: "deepseek", at: (/* @__PURE__ */ new Date()).toISOString(), evidence: truncated ? "unknown" : "observed" };
+  if (v.type === "status") return v.phase === "step_end" && Number.isSafeInteger(v.turn) && Number.isSafeInteger(v.step) ? [{ ...base, kind: "usage.recorded", data: { ...deepseekUsage(v.usage, `${c.taskId}:turn-${v.turn}:step-${v.step}`) } }] : [];
   if (v.type === "session") return [{ ...base, sessionId: v.sessionId || c.sessionId, kind: "session.started", data: {} }];
   if (v.type === "tool_call") return [{ ...base, kind: "tool.started", data: { tool: v.tool, callId: v.callId, input: v.input, truncated } }];
   if (v.type === "tool_result") return [{ ...base, kind: "tool.completed", data: { callId: v.callId, status: v.status, output: v.result, truncated } }];
@@ -1023,11 +1381,17 @@ function normalizeDSH(v, c) {
   return [];
 }
 async function delegate(root, options) {
-  const cfg = await loadConfig(root), task = await readFile7(options.taskFile, "utf8");
+  const cfg = await loadConfig(root), task = await readFile9(options.taskFile, "utf8");
   if (!task.trim() || task.length > 128 * 1024) throw new Error("Task must be non-empty and <=128 KiB");
   if (options.sessionId && !safeId(options.sessionId)) throw new Error("Invalid DeepSeek session ID");
-  const runId = safeId(options.parentSession) ? options.parentSession : hash(options.parentSession).slice(0, 32), taskId = "task-" + randomUUID6();
-  const c = { runId, sessionId: "pending-" + taskId, taskId, parentTaskId: options.parentTurn };
+  const runId = safeId(options.parentSession) ? options.parentSession : hash(options.parentSession).slice(0, 32), taskId = "task-" + randomUUID7();
+  let parentTaskId = options.parentTurn;
+  if (!parentTaskId) try {
+    await collect(root);
+    parentTaskId = resolveParentTask(await allEvents(root), options.parentSession);
+  } catch {
+  }
+  const c = { runId, sessionId: "pending-" + taskId, taskId, parentTaskId };
   let invalid = false;
   const send = async (e) => {
     try {
@@ -1037,7 +1401,7 @@ async function delegate(root, options) {
       process.stderr.write("HandoffFM: recording gap; the delegate continues.\n");
     }
   };
-  const emit = async (kind, data, actor = "deepseek", evidence = "observed") => send({ version: 1, id: randomUUID6(), ...c, sessionId: actor === "codex" ? options.parentSession : c.sessionId, actor, kind, at: (/* @__PURE__ */ new Date()).toISOString(), evidence, data });
+  const emit = async (kind, data, actor = "deepseek", evidence = "observed") => send({ version: 1, id: randomUUID7(), ...c, sessionId: actor === "codex" ? options.parentSession : c.sessionId, actor, kind, at: (/* @__PURE__ */ new Date()).toISOString(), evidence, data });
   const gap = async (message) => {
     invalid = true;
     await emit("recording.gap", { message }, "system", "unknown");
@@ -1054,12 +1418,12 @@ async function delegate(root, options) {
   const spec = commandSpec(cfg.dshCommand || "dsh", args2);
   if (!await rotateAttributionEpoch(root)) await gap("Attribution guard unavailable; delegate recording is incomplete");
   await emit("delegate.started", { title: options.title, prompt: task, parentSession: options.parentSession }, "codex");
-  const windowMarker = join7(dir(root), "pending", `delegate-${taskId}.json`);
+  const windowMarker = join9(dir(root), "pending", `delegate-${taskId}.json`);
   const pendingMarkers = /* @__PURE__ */ new Set();
   try {
     try {
-      await writeFile6(windowMarker, JSON.stringify({ actor: "deepseek", taskId }));
-      for (const name of await readdir4(join7(dir(root), "pending"))) if (name.endsWith(".json") && join7(dir(root), "pending", name) !== windowMarker) await writeFile6(join7(dir(root), "pending", name) + ".overlap", "1");
+      await writeFile7(windowMarker, JSON.stringify({ actor: "deepseek", taskId }));
+      for (const name of await readdir6(join9(dir(root), "pending"))) if (name.endsWith(".json") && join9(dir(root), "pending", name) !== windowMarker) await writeFile7(join9(dir(root), "pending", name) + ".overlap", "1");
     } catch {
       await gap("Task-window recording unavailable; the delegate continues");
     }
@@ -1115,10 +1479,10 @@ async function delegate(root, options) {
             await gap("Tool snapshot unavailable; tool evidence excluded");
             return;
           }
-          const pending = join7(dir(root), "pending", "ds-" + hash(taskId + v.callId) + ".json");
-          const overlap = (await readdir4(join7(dir(root), "pending"))).length > 0;
+          const pending = join9(dir(root), "pending", "ds-" + hash(taskId + v.callId) + ".json");
+          const overlap = (await readdir6(join9(dir(root), "pending"))).length > 0;
           const excluded = await excludedEvidence(root, v.input);
-          await writeFile6(pending, JSON.stringify({ actor: "deepseek", taskId }));
+          await writeFile7(pending, JSON.stringify({ actor: "deepseek", taskId }));
           pendingMarkers.add(pending);
           calls.set(v.callId, { before, input: v.input, tool: v.tool, truncated: !!v.truncated, pending, overlap, excluded });
         }
@@ -1132,7 +1496,7 @@ async function delegate(root, options) {
         if (v.type === "tool_result" && calls.has(v.callId)) {
           const call = calls.get(v.callId);
           const after = await snapshot(root);
-          const others = (await readdir4(join7(dir(root), "pending"))).filter((n) => n !== call.pending.split(/[\\/]/).at(-1));
+          const others = (await readdir6(join9(dir(root), "pending"))).filter((n) => n !== call.pending.split(/[\\/]/).at(-1));
           for (const change of changes(call.before, after)) {
             await emit("file.changed", { ...change, before: void 0, after: void 0, beforeBlob: await blob(root, change.before), afterBlob: await blob(root, change.after), callId: v.callId, candidateActor: "deepseek", reason: "Observed during delegate tool; external event stream is not a pre-write barrier" }, "deepseek", "unknown");
             reported.add(change.path + "@" + change.afterHash);
@@ -1229,13 +1593,13 @@ async function delegate(root, options) {
 // src/server.ts
 import { createServer } from "http";
 import { randomBytes, timingSafeEqual } from "crypto";
-import { readFile as readFile9, realpath as realpath5 } from "fs/promises";
-import { join as join9, resolve as resolve6, relative as relative4, isAbsolute as isAbsolute4, extname } from "path";
+import { readFile as readFile11, realpath as realpath6 } from "fs/promises";
+import { join as join11, resolve as resolve7, relative as relative5, isAbsolute as isAbsolute6, extname } from "path";
 import { fileURLToPath } from "url";
 
 // src/export.ts
-import { readFile as readFile8, readdir as readdir5 } from "fs/promises";
-import { join as join8 } from "path";
+import { readFile as readFile10, readdir as readdir7 } from "fs/promises";
+import { join as join10 } from "path";
 
 // src/share.ts
 function shareEvents(events, options) {
@@ -1246,7 +1610,7 @@ function shareEvents(events, options) {
     if (!aliases.has(key)) aliases.set(key, `${prefix}-${aliases.size + 1}`);
     return aliases.get(key);
   };
-  return events.map((e, i) => {
+  return events.filter((e) => e.kind !== "usage.recorded" || options.usage).map((e, i) => {
     const data = {};
     if (options.prompts) {
       for (const key of ["prompt", "title"]) if (key in e.data) data[key] = e.data[key];
@@ -1255,6 +1619,16 @@ function shareEvents(events, options) {
     if (options.diffs && e.kind === "file.changed") data.diff = e.data.diff;
     if (options.outputs) {
       for (const key of ["text", "output", "exitCode", "status", "message", "reason"]) if (key in e.data) data[key] = e.data[key];
+    }
+    if (options.usage && (e.kind === "tool.started" || e.kind === "tool.completed") && typeof e.data.callId === "string") data.callId = alias(`${e.actor}:${e.sessionId}:${e.data.callId}`, "call");
+    if (options.usage && e.kind === "usage.recorded") {
+      const numbers = validNumbers(e.data);
+      if (numbers) {
+        for (const k of numericKeys) if (numbers[k] !== void 0) data[k] = numbers[k];
+      }
+      data.sampleKey = alias(String(e.data.sampleKey || e.id), "sample");
+      data.source = ["codex-transcript", "deepseek-step"].includes(String(e.data.source)) ? e.data.source : "unknown";
+      data.coverage = ["complete", "partial", "unavailable"].includes(String(e.data.coverage)) ? e.data.coverage : "unavailable";
     }
     return {
       version: 1,
@@ -1275,23 +1649,23 @@ function shareEvents(events, options) {
 
 // src/export.ts
 async function offlineHTML(webDir, events, options) {
-  const html = await readFile8(join8(webDir, "index.html"), "utf8");
+  const html = await readFile10(join10(webDir, "index.html"), "utf8");
   const assets = {};
-  const chars = join8(webDir, "characters");
-  for (const file of await readdir5(chars)) if (/^[a-z-]+\.png$/.test(file)) assets[`/characters/${file}`] = "data:image/png;base64," + (await readFile8(join8(chars, file))).toString("base64");
+  const chars = join10(webDir, "characters");
+  for (const file of await readdir7(chars)) if (/^[a-z-]+\.png$/.test(file)) assets[`/characters/${file}`] = "data:image/png;base64," + (await readFile10(join10(chars, file))).toString("base64");
   const json = JSON.stringify({ events: shareEvents(events, options), options, assets }).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
   let result = html.replace(/<link rel="modulepreload"[^>]*>/g, "");
   const scripts = [...result.matchAll(/<script\b[^>]*src="([^"]+)"[^>]*><\/script>/g)];
   for (const match of scripts) {
     const path2 = match[1].replace(/^\//, "");
     if (!/^assets\/[a-zA-Z0-9_.-]+\.js$/.test(path2)) throw new Error("Unexpected build script");
-    const code2 = await readFile8(join8(webDir, path2), "utf8");
+    const code2 = await readFile10(join10(webDir, path2), "utf8");
     result = result.replace(match[0], () => `<script type="module">${code2.replace(/<\/script/gi, "<\\/script")}</script>`);
   }
   for (const match of [...result.matchAll(/<link\b[^>]*href="([^"]+\.css)"[^>]*>/g)]) {
     const path2 = match[1].replace(/^\//, "");
     if (!/^assets\/[a-zA-Z0-9_.-]+\.css$/.test(path2)) throw new Error("Unexpected build CSS");
-    const css = await readFile8(join8(webDir, path2), "utf8");
+    const css = await readFile10(join10(webDir, path2), "utf8");
     result = result.replace(match[0], () => `<style>${css.replace(/<\/style/gi, "<\\/style")}</style>`);
   }
   result = result.replace(/<head>/, () => `<head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"><script>window.__HANDOFF_FM_OFFLINE__=` + json + "</script>");
@@ -1299,10 +1673,10 @@ async function offlineHTML(webDir, events, options) {
 }
 
 // src/types.ts
-var DEFAULT_SHARE = { prompts: false, paths: false, diffs: false, outputs: false };
+var DEFAULT_SHARE = { prompts: false, paths: false, diffs: false, outputs: false, usage: false };
 
 // src/server.ts
-var webDirectory = resolve6(fileURLToPath(new URL("../web-dist", import.meta.url)));
+var webDirectory = resolve7(fileURLToPath(new URL("../web-dist", import.meta.url)));
 async function startWatch(root, options) {
   const token = randomBytes(32).toString("hex");
   const streams = /* @__PURE__ */ new Set();
@@ -1372,19 +1746,20 @@ data: ${JSON.stringify(e)}
         }
         return fail(404, "Unknown endpoint");
       }
-      const web = await realpath5(options.webDir || webDirectory);
-      const target = await realpath5(join9(web, decodeURIComponent(url.pathname === "/" ? "index.html" : url.pathname.slice(1))));
-      const rel = relative4(web, target);
-      if (rel.startsWith("..") || isAbsolute4(rel)) return fail(403, "Invalid path");
+      const web = await realpath6(options.webDir || webDirectory);
+      const target = await realpath6(join11(web, decodeURIComponent(url.pathname === "/" ? "index.html" : url.pathname.slice(1))));
+      const rel = relative5(web, target);
+      if (rel.startsWith("..") || isAbsolute6(rel)) return fail(403, "Invalid path");
       const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".json": "application/json; charset=utf-8" };
       res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
       res.writeHead(200, { "Content-Type": types[extname(target)] || "application/octet-stream" });
-      res.end(await readFile9(target));
+      res.end(await readFile11(target));
     } catch (e) {
       res.writeHead(e.code === "ENOENT" ? 404 : 500);
       res.end("Resource unavailable");
     }
   });
+  await pollCodexUsage(root);
   await collect(root);
   await new Promise((done, reject) => {
     server.once("error", reject);
@@ -1400,6 +1775,7 @@ data: ${JSON.stringify(e)}
     if (ticking) return;
     ticking = true;
     try {
+      await pollCodexUsage(root);
       await collect(root);
       const events = streams.size ? await allEvents(root) : [];
       for (const res of streams) {
@@ -1450,7 +1826,7 @@ async function stdin() {
   return s;
 }
 async function run(argv = process.argv.slice(2)) {
-  const { options: o, positional: p } = args(argv), command = p[0] || "help", root = resolve7(o.project || process.cwd());
+  const { options: o, positional: p } = args(argv), command = p[0] || "help", root = resolve8(o.project || process.cwd());
   if (command === "hook") {
     try {
       const input = JSON.parse(await stdin());
@@ -1466,7 +1842,7 @@ async function run(argv = process.argv.slice(2)) {
     if (o["dsh-command"]) cfg.dshCommand = o["dsh-command"];
     const bound = o["bind-session"];
     if (bound && !cfg.boundSessions.includes(bound)) cfg.boundSessions.push(bound);
-    await writeFile7(join10(dir(root), "config.json"), JSON.stringify(cfg, null, 2) + "\n");
+    await writeFile8(join12(dir(root), "config.json"), JSON.stringify(cfg, null, 2) + "\n");
     await register(root);
     console.log(`Enabled ${root}
 Next: install the Codex plugin, review/trust its hooks, then run handoff-fm watch.
@@ -1504,14 +1880,14 @@ Keep this process running. The URL grants access to local records; do not share 
     return 0;
   }
   if (command === "export") {
-    if (!p[1] || !o.output) throw new Error("Use export RUN --output PATH [--prompts --paths --diffs --outputs] [--confirm]");
+    if (!p[1] || !o.output) throw new Error("Use export RUN --output PATH [--prompts --paths --diffs --outputs --usage] [--confirm]");
     await collect(root);
     const selection = { ...DEFAULT_SHARE };
     for (const key of Object.keys(selection)) selection[key] = o[key] === "true";
     const events = await readRun(root, p[1]);
     if (!events.length) throw new Error("Run has no recorded events");
-    const output = resolve7(o.output), preview = o.confirm === "true" ? output : output + ".preview.html";
-    await writeFile7(preview, await offlineHTML(webDirectory, events, selection), { flag: "wx" });
+    const output = resolve8(o.output), preview = o.confirm === "true" ? output : output + ".preview.html";
+    await writeFile8(preview, await offlineHTML(webDirectory, events, selection), { flag: "wx" });
     console.log(`Offline ${o.confirm === "true" ? "export" : "preview"}: ${preview}
 Included: ${Object.entries(selection).filter(([, v]) => v).map(([k]) => k).join(", ") || "roles, generic event types and relative timing only"}.
 Review selected content for secrets. Automatic masking cannot find everything.${o.confirm === "true" ? "" : "\nAfter reviewing, repeat the same command with --confirm to export."}`);
@@ -1519,12 +1895,12 @@ Review selected content for secrets. Automatic masking cannot find everything.${
   }
   if (command === "delegate") {
     if (p[1] !== "deepseek" || !o["task-file"] || !o["parent-session"]) throw new Error("Use delegate deepseek --task-file PATH --title TITLE --parent-session ID [--parent-turn ID]");
-    return delegate(root, { taskFile: resolve7(root, o["task-file"]), title: o.title || "Delegated task", parentSession: o["parent-session"], parentTurn: o["parent-turn"], sessionId: o["session-id"] });
+    return delegate(root, { taskFile: resolve8(root, o["task-file"]), title: o.title || "Delegated task", parentSession: o["parent-session"], parentTurn: o["parent-turn"], sessionId: o["session-id"] });
   }
-  console.log("HandoffFM 0.1.1\ninit | doctor | watch | delegate deepseek | export\nUse --project PATH to select an enabled project.");
+  console.log("HandoffFM 0.1.2\ninit | doctor | watch | delegate deepseek | export\nUse --project PATH to select an enabled project.");
   return 0;
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve7(process.argv[1])).href) run().then((code2) => {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve8(process.argv[1])).href) run().then((code2) => {
   process.exitCode = code2;
 }).catch((e) => {
   console.error(e.message);

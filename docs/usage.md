@@ -20,7 +20,9 @@ Install the released bundle. It contains the built CLI (`dist/`) and the built v
 (`web-dist/`), so no build step and no dev dependencies are required:
 
 ```sh
-npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.1/handoff-fm-0.1.1.tgz
+npm install -g https://github.com/Alexstrasza231/handoff-fm/releases/download/v0.1.2/handoff-fm-0.1.2.tgz
+cd /path/to/your/project
+handoff-fm init
 handoff-fm doctor
 ```
 
@@ -49,7 +51,7 @@ Notes:
 - The offline export and the watch viewer need the web build output (`web-dist/`). If `web-dist/`
   is absent, `watch` answers `Resource unavailable` for the page and `export` fails reading
   `web-dist/index.html`; run `npm run build` first.
-- Released v0.1.1 is a GitHub release artifact. It is not published to any package registry, so
+- Released v0.1.2 is a GitHub release artifact. It is not published to any package registry, so
   `npm install handoff-fm` or `npx handoff-fm` will not resolve.
 - In the examples below, `handoff-fm <command>` stands for the global install; from a checkout use
   `node dist/cli.js <command>`.
@@ -186,13 +188,16 @@ It prints JSON and exits non-zero if a hard requirement is missing:
 
 ## 6. Watch: the live local viewer
 
-The development viewer now starts with two characters, a concise task title and six recent activities. Every activity names the recorded side, operation and target; unknown attribution stays unknown. Click an activity or handoff packet to open evidence, then expand raw JSON if needed.
+The home page shows Codex and DeepSeek, one recent action each, the task title, connection state,
+and one row of recorded task usage. Missing usage stays unavailable. Model and instance IDs live in details.
 
-- **查看最近修改** opens the latest recorded file diff with one click.
-- **重播最近交接** starts at the latest dispatch; **回到现场** returns to live mode. Replay controls retain speed, stepping and handoff/failure navigation.
-- **更多** contains run selection, sample playback, sharing and caption/motion preferences. Full history and instance information are expandable.
+- **查看详情** opens the **过程记录 / 用量明细** tabs. Click a character to filter to that side.
+- **回放过程** opens playback position, speed, stepping and handoff/failure navigation.
+- **更多** contains run selection, sample playback, sharing and caption/motion preferences.
+- **看个例子** in the empty state enters a clearly labelled static sample; no model calls.
 
-Stage captions are fixed fictional dialogue. Real quotes and command results remain in evidence. The compact stage and refresh-selection fix ship in v0.1.1.
+Stage captions are fixed fictional dialogue. Real quotes and command results remain in evidence.
+See [recorded task usage](./usage-tokens.md) for sources, partial coverage, association and `--usage` exports.
 
 ```powershell
 node dist/cli.js watch --project C:\work\my-app
